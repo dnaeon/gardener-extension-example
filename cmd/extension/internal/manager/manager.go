@@ -1,17 +1,27 @@
-// TODO: requeue interval flag
-
 package manager
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"gardener-extension-example/internal/pkg/actuator"
 	"slices"
 	"time"
 
-	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	glogger "github.com/gardener/gardener/pkg/logger"
 	"github.com/urfave/cli/v3"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	controllerconfig "sigs.k8s.io/controller-runtime/pkg/config"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+
+	"gardener-extension-example/internal/pkg/controller"
 )
 
 // flags stores the manager flags as provided from the command-line
@@ -26,10 +36,60 @@ type flags struct {
 	ignoreOperationAnnotation bool
 	maxConcurrentReconciles   int
 	kubeconfig                string
-	extensionClass            string
 	zapLogLevel               string
 	zapLogFormat              string
 	resyncInterval            time.Duration
+}
+
+// getManager creates a new [ctrl.Manager] based on the parsed [flags].
+func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
+	scheme := runtime.NewScheme()
+	schemeRegistries := []func(s *runtime.Scheme) error{
+		clientgoscheme.AddToScheme,
+		extensionscontroller.AddToScheme,
+	}
+	for _, addToScheme := range schemeRegistries {
+		if err := addToScheme(scheme); err != nil {
+			return nil, fmt.Errorf("failed to add scheme: %w", err)
+		}
+	}
+
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get rest config: %w", err)
+	}
+
+	mgr, err := ctrl.NewManager(
+		restConfig,
+		ctrl.Options{
+			Scheme: scheme,
+			Metrics: metricsserver.Options{
+				BindAddress: f.metricsBindAddr,
+			},
+			HealthProbeBindAddress:     f.healthProbeBindAddr,
+			LeaderElection:             f.leaderElection,
+			LeaderElectionID:           f.leaderElectionID,
+			LeaderElectionNamespace:    f.leaderElectionNamespace,
+			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+			BaseContext:                func() context.Context { return ctx },
+			Controller: controllerconfig.Controller{
+				MaxConcurrentReconciles: f.maxConcurrentReconciles,
+				RecoverPanic:            ptr.To(true),
+			},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create manager: %w", err)
+	}
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		return nil, fmt.Errorf("failed to setup health check: %w", err)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		return nil, fmt.Errorf("failed to setup ready check: %w", err)
+	}
+
+	return mgr, nil
 }
 
 // flagsKey is the key used to store the parsed command-line flags in a
@@ -51,8 +111,9 @@ func New() *cli.Command {
 	var flags flags
 
 	cmd := &cli.Command{
-		Name:  "manager",
-		Usage: "start controller manager",
+		Name:    "manager",
+		Aliases: []string{"m"},
+		Usage:   "start controller manager",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "metrics-bind-address",
@@ -123,25 +184,6 @@ func New() *cli.Command {
 				Destination: &flags.kubeconfig,
 			},
 			&cli.StringFlag{
-				Name:     "extension-class",
-				Usage:    "extension class this extension is responsible for [garden, seed or shoot]",
-				Required: true,
-				Sources:  cli.EnvVars("EXTENSION_CLASS"),
-				Validator: func(val string) error {
-					classes := []string{
-						string(extensionsv1alpha1.ExtensionClassGarden),
-						string(extensionsv1alpha1.ExtensionClassSeed),
-						string(extensionsv1alpha1.ExtensionClassShoot),
-					}
-					if !slices.Contains(classes, val) {
-						return errors.New("invalid extension class specified")
-					}
-
-					return nil
-				},
-				Destination: &flags.extensionClass,
-			},
-			&cli.StringFlag{
 				Name:  "log-level",
 				Usage: "Zap Level to configure the verbosity of logging",
 				Value: glogger.InfoLevel,
@@ -156,8 +198,8 @@ func New() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:  "log-format",
-				Usage: "Zap log encoding format, json or console",
-				Value: glogger.FormatJSON,
+				Usage: "Zap log encoding format, json or text",
+				Value: glogger.FormatText,
 				Validator: func(val string) error {
 					if !slices.Contains(glogger.AllLogFormats, val) {
 						return errors.New("invalid log level format specified")
@@ -189,7 +231,46 @@ func New() *cli.Command {
 
 // runManager starts the controller manager
 func runManager(ctx context.Context, cmd *cli.Command) error {
-	// TODO: fill me in
+	logger := ctrllog.Log.WithName("manager-setup")
+	logger.Info("creating manager")
+
+	flags := getFlags(ctx)
+	mgr, err := flags.getManager(ctx)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("creating actuators")
+	act, err := actuator.New(
+		actuator.WithReader(mgr.GetAPIReader()),
+		actuator.WithClient(mgr.GetClient()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create actuator: %w", err)
+	}
+
+	logger.Info("creating controllers")
+	c, err := controller.New(
+		controller.WithActuator(act),
+		controller.WithName(act.Name()),
+		controller.WithExtensionType(act.ExtensionType()),
+		controller.WithFinalizerSuffix(act.FinalizerSuffix()),
+		controller.WithExtensionClasses(act.ExtensionClasses()),
+		controller.WithIgnoreOperationAnnotation(flags.ignoreOperationAnnotation),
+		controller.WithResyncInterval(flags.resyncInterval),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create a controller: %w", err)
+	}
+
+	if err := c.SetupWithManager(ctx, mgr); err != nil {
+		return fmt.Errorf("failed to setup controller with manager: %w", err)
+	}
+
+	logger.Info("starting manager")
+	if err := mgr.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start manager: %w", err)
+	}
 
 	return nil
 }
