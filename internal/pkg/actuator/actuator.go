@@ -30,8 +30,33 @@ func New(opts ...Option) (extension.Actuator, error) {
 	return act, nil
 }
 
+// WithClient is an [Option], which configures the [Actuator] with the given
+// [client.Client].
+func WithClient(c client.Client) Option {
+	opt := func(a *Actuator) error {
+		a.client = c
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithReader is an [Option], which configures the [Actuator] with the given
+// [client.Reader].
+func WithReader(r client.Reader) Option {
+	opt := func(a *Actuator) error {
+		a.reader = r
+
+		return nil
+	}
+
+	return opt
+}
+
 // Reconcile reconciles the [extensionsv1alpha1.Extension] resource by taking
-// care of any resources managed by the [Actuator].
+// care of any resources managed by the [Actuator]. This method implements the
+// [extension.Actuator] interface.
 func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	// TODO: boilerplate
 	// TODO: logging
@@ -39,7 +64,8 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 	return nil
 }
 
-// Delete deletes any resources managed by the [Actuator].
+// Delete deletes any resources managed by the [Actuator]. This method
+// implements the [extension.Actuator] interface.
 func (a *Actuator) Delete(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	// TODO: boilerplate
 	// TODO: logging
@@ -48,7 +74,8 @@ func (a *Actuator) Delete(ctx context.Context, logger logr.Logger, ex *extension
 }
 
 // ForceDelete signals the [Actuator] to delete any resources managed by it,
-// because of a force-delete event of the shoot cluster.
+// because of a force-delete event of the shoot cluster. This method implements
+// the [extension.Actuator] interface.
 func (a *Actuator) ForceDelete(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	// TODO: boilerplate
 	// TODO: logging
@@ -56,7 +83,8 @@ func (a *Actuator) ForceDelete(ctx context.Context, logger logr.Logger, ex *exte
 	return nil
 }
 
-// Restore restores the resources managed by the extension [Actuator].
+// Restore restores the resources managed by the extension [Actuator]. This
+// method implements the [extension.Actuator] interface.
 func (a *Actuator) Restore(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	// TODO: boilerplate
 	// TODO: logging
@@ -65,7 +93,8 @@ func (a *Actuator) Restore(ctx context.Context, logger logr.Logger, ex *extensio
 }
 
 // Migrate signals the [Actuator] to reconcile the resources managed by it,
-// because of a shoot control-plane migration event.
+// because of a shoot control-plane migration event. This method implements the
+// [extension.Actuator] interface.
 func (a *Actuator) Migrate(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	// TODO: boilerplate
 	// TODO: logging
