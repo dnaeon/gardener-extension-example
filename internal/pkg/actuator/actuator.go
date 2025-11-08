@@ -6,20 +6,22 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Name specifies the name of the actuator
-const Name = "example"
-
 // Actuator is an implementation of [extension.Actuator].
-// TODO: add client to the actuator
-type Actuator struct{}
+type Actuator struct {
+	reader client.Reader
+	client client.Client
+}
+
+var _ extension.Actuator = &Actuator{}
 
 // Option is a function, which configures the [Actuator].
 type Option func(a *Actuator) error
 
-// New creates a new actuator
-func New(opts ...Option) (extension.Actuator, error) {
+// New creates a new actuator with the given options.
+func New(opts ...Option) (*Actuator, error) {
 	act := &Actuator{}
 	for _, opt := range opts {
 		if err := opt(act); err != nil {
@@ -52,6 +54,35 @@ func WithReader(r client.Reader) Option {
 	}
 
 	return opt
+}
+
+// Name returns the name of the actuator. This name can be used when registering
+// a controller for the actuator.
+func (a *Actuator) Name() string {
+	return "example"
+}
+
+// FinalizerSuffix returns the finalizer suffix to use for the actuator. The
+// result of this method may be used when registering a controller with the
+// actuator.
+func (a *Actuator) FinalizerSuffix() string {
+	return "example"
+}
+
+// ExtensionType returns the type of extension resources the actuator
+// reconciles. The result of this method may be used when registering a
+// controller with the actuator.
+func (a *Actuator) ExtensionType() string {
+	return "example"
+}
+
+// ExtensionClasses returns the list of [extensionsv1alpha1.ExtensionClass]
+// items for the actuator. The result of this method may be used when
+// registering a controller with the actuator.
+func (a *Actuator) ExtensionClasses() []extensionsv1alpha1.ExtensionClass {
+	return []extensionsv1alpha1.ExtensionClass{
+		extensionsv1alpha1.ExtensionClassShoot,
+	}
 }
 
 // Reconcile reconciles the [extensionsv1alpha1.Extension] resource by taking
