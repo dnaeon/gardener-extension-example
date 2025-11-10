@@ -10,7 +10,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	managercmd "gardener-extension-example/cmd/extension/internal/manager"
-	"gardener-extension-example/internal/pkg/version"
+	"gardener-extension-example/pkg/version"
 )
 
 func main() {

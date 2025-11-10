@@ -37,6 +37,7 @@ type flags struct {
 	zapLogLevel               string
 	zapLogFormat              string
 	resyncInterval            time.Duration
+	pprofBindAddr             string
 }
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
@@ -53,6 +54,7 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		mgr.WithMaxConcurrentReconciles(f.maxConcurrentReconciles),
 		mgr.WithHealthzCheck("healthz", healthz.Ping),
 		mgr.WithReadyzCheck("readyz", healthz.Ping),
+		mgr.WithPprofAddress(f.pprofBindAddr),
 	)
 
 	if err != nil {
@@ -112,6 +114,12 @@ func New() *cli.Command {
 				Value:       ":8080",
 				Sources:     cli.EnvVars("METRICS_BIND_ADDRESS"),
 				Destination: &flags.metricsBindAddr,
+			},
+			&cli.StringFlag{
+				Name:        "pprof-bind-address",
+				Usage:       "the address at which pprof binds to",
+				Sources:     cli.EnvVars("PPROF_BIND_ADDRESS"),
+				Destination: &flags.pprofBindAddr,
 			},
 			&cli.StringFlag{
 				Name:        "health-probe-bind-address",
