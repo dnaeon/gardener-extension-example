@@ -4,28 +4,26 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gardener-extension-example/internal/pkg/actuator"
 	"slices"
 	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	glogger "github.com/gardener/gardener/pkg/logger"
 	"github.com/urfave/cli/v3"
-	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	controllerconfig "sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	"gardener-extension-example/internal/pkg/controller"
+	"gardener-extension-example/pkg/actuator"
+	"gardener-extension-example/pkg/controller"
+	"gardener-extension-example/pkg/heartbeat"
+	"gardener-extension-example/pkg/mgr"
 )
 
 // flags stores the manager flags as provided from the command-line
 type flags struct {
+	extensionName             string
 	metricsBindAddr           string
 	healthProbeBindAddr       string
 	heartbeatRenewInterval    time.Duration
@@ -43,50 +41,36 @@ type flags struct {
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
 func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
-	scheme := runtime.NewScheme()
-	schemeRegistries := []func(s *runtime.Scheme) error{
-		clientgoscheme.AddToScheme,
-		extensionscontroller.AddToScheme,
-	}
-	for _, addToScheme := range schemeRegistries {
-		if err := addToScheme(scheme); err != nil {
-			return nil, fmt.Errorf("failed to add scheme: %w", err)
-		}
-	}
-
-	restConfig, err := ctrl.GetConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rest config: %w", err)
-	}
-
-	mgr, err := ctrl.NewManager(
-		restConfig,
-		ctrl.Options{
-			Scheme: scheme,
-			Metrics: metricsserver.Options{
-				BindAddress: f.metricsBindAddr,
-			},
-			HealthProbeBindAddress:     f.healthProbeBindAddr,
-			LeaderElection:             f.leaderElection,
-			LeaderElectionID:           f.leaderElectionID,
-			LeaderElectionNamespace:    f.leaderElectionNamespace,
-			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-			BaseContext:                func() context.Context { return ctx },
-			Controller: controllerconfig.Controller{
-				MaxConcurrentReconciles: f.maxConcurrentReconciles,
-				RecoverPanic:            ptr.To(true),
-			},
-		},
+	mgr, err := mgr.New(
+		mgr.WithContext(ctx),
+		mgr.WithAddToScheme(clientgoscheme.AddToScheme),
+		mgr.WithAddToScheme(extensionscontroller.AddToScheme),
+		mgr.WithMetricsAddress(f.metricsBindAddr),
+		mgr.WithHealthProbeAddress(f.healthProbeBindAddr),
+		mgr.WithLeaderElection(f.leaderElection),
+		mgr.WithLeaderElectionID(f.leaderElectionID),
+		mgr.WithLeaderElectionNamespace(f.leaderElectionNamespace),
+		mgr.WithMaxConcurrentReconciles(f.maxConcurrentReconciles),
+		mgr.WithHealthzCheck("healthz", healthz.Ping),
+		mgr.WithReadyzCheck("readyz", healthz.Ping),
 	)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to create manager: %w", err)
+		return nil, err
 	}
 
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		return nil, fmt.Errorf("failed to setup health check: %w", err)
+	hb, err := heartbeat.New(
+		heartbeat.WithExtensionName(f.extensionName),
+		heartbeat.WithLeaseNamespace(f.heartbeatNamespace),
+		heartbeat.WithRenewInterval(f.heartbeatRenewInterval),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create heartbeat controller: %w", err)
 	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		return nil, fmt.Errorf("failed to setup ready check: %w", err)
+
+	if err := hb.SetupWithManager(ctx, mgr); err != nil {
+		return nil, fmt.Errorf("failed to setup heartbeat controller: %w", err)
 	}
 
 	return mgr, nil
@@ -116,6 +100,13 @@ func New() *cli.Command {
 		Usage:   "start controller manager",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
+				Name:        "extension-name",
+				Usage:       "name of the gardener extension",
+				Value:       "gardener-extension-example",
+				Sources:     cli.EnvVars("EXTENSION_NAME"),
+				Destination: &flags.extensionName,
+			},
+			&cli.StringFlag{
 				Name:        "metrics-bind-address",
 				Usage:       "the address the metrics endpoint binds to",
 				Value:       ":8080",
@@ -139,6 +130,7 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:        "heartbeat-namespace",
 				Usage:       "namespace to use for the heartbeat lease",
+				Value:       "gardener-extension-example",
 				Sources:     cli.EnvVars("HEARTBEAT_NAMESPACE"),
 				Destination: &flags.heartbeatNamespace,
 			},
