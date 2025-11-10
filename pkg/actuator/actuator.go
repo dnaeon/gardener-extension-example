@@ -2,17 +2,22 @@ package actuator
 
 import (
 	"context"
+	"fmt"
 
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
+	v1beta1helper "github.com/gardener/gardener/pkg/apis/core/v1beta1/helper"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Actuator is an implementation of [extension.Actuator].
 type Actuator struct {
-	reader client.Reader
-	client client.Client
+	reader  client.Reader
+	client  client.Client
+	decoder runtime.Decoder
 }
 
 var _ extension.Actuator = &Actuator{}
@@ -49,6 +54,18 @@ func WithClient(c client.Client) Option {
 func WithReader(r client.Reader) Option {
 	opt := func(a *Actuator) error {
 		a.reader = r
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithDecoder is an [Option], which configures the [Actuator] with the given
+// [runtime.Decoder].
+func WithDecoder(d runtime.Decoder) Option {
+	opt := func(a *Actuator) error {
+		a.decoder = d
 
 		return nil
 	}

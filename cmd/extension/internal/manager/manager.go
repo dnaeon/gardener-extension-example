@@ -10,6 +10,7 @@ import (
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	glogger "github.com/gardener/gardener/pkg/logger"
 	"github.com/urfave/cli/v3"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -241,9 +242,11 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	logger.Info("creating actuators")
+	decoder := serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
 	act, err := actuator.New(
 		actuator.WithReader(mgr.GetAPIReader()),
 		actuator.WithClient(mgr.GetClient()),
+		actuator.WithDecoder(decoder),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create actuator: %w", err)
