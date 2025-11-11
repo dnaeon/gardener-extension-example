@@ -5,9 +5,11 @@ go 1.25.0
 require (
 	github.com/gardener/gardener v1.131.1
 	github.com/go-logr/logr v1.4.3
+	github.com/prometheus/client_golang v1.23.0
 	github.com/urfave/cli/v3 v3.5.0
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
+	k8s.io/component-base v0.33.5
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/controller-runtime v0.21.0
 )
@@ -88,7 +90,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.85.0 // indirect
-	github.com/prometheus/client_golang v1.23.0 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.2 // indirect
 	github.com/prometheus/otlptranslator v0.0.2 // indirect
@@ -156,7 +157,6 @@ require (
 	k8s.io/api v0.34.1 // indirect
 	k8s.io/apiextensions-apiserver v0.33.5 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.4.2 // indirect
-	k8s.io/component-base v0.33.5 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-aggregator v0.33.5 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
