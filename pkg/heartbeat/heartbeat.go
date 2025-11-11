@@ -103,9 +103,9 @@ func WithRenewInterval(interval time.Duration) Option {
 
 // WithClock is an [Option], which configures the [Heartbeat] to use the given
 // [clock.Clock].
-func WithClock(clock clock.Clock) Option {
+func WithClock(clk clock.Clock) Option {
 	opt := func(h *Heartbeat) error {
-		h.clock = clock
+		h.clock = clk
 
 		return nil
 	}

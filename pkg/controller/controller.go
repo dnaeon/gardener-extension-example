@@ -8,7 +8,6 @@ import (
 
 	ctrlutils "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
-	extensionsctrl "github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	crctrl "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -95,16 +94,16 @@ func New(opts ...Option) (*Controller, error) {
 }
 
 // SetupWithManager registers the [Controller] with the given [manager.Manager].
-// Internally, this method uses [extensionsctrl.Add], which builds a reconciler
+// Internally, this method uses [extension.Add], which builds a reconciler
 // wrapper around the [extension.Actuator] used by the [Controller].
 func (c *Controller) SetupWithManager(ctx context.Context, mgr manager.Manager) error {
 	if len(c.predicates) == 0 {
-		c.predicates = extensionsctrl.DefaultPredicates(ctx, mgr, c.ignoreOperationAnnotation)
+		c.predicates = extension.DefaultPredicates(ctx, mgr, c.ignoreOperationAnnotation)
 	}
 
-	return extensionsctrl.Add(
+	return extension.Add(
 		mgr,
-		extensionsctrl.AddArgs{
+		extension.AddArgs{
 			Actuator:                  c.actuator,
 			Name:                      c.name,
 			FinalizerSuffix:           c.finalizerSuffix,

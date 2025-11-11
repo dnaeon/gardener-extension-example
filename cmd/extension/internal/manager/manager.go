@@ -46,7 +46,7 @@ type flags struct {
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
 func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
-	mgr, err := mgr.New(
+	m, err := mgr.New(
 		mgr.WithContext(ctx),
 		mgr.WithAddToScheme(clientgoscheme.AddToScheme),
 		mgr.WithAddToScheme(extensionscontroller.AddToScheme),
@@ -79,11 +79,11 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		return nil, fmt.Errorf("failed to create heartbeat controller: %w", err)
 	}
 
-	if err := hb.SetupWithManager(ctx, mgr); err != nil {
+	if err := hb.SetupWithManager(ctx, m); err != nil {
 		return nil, fmt.Errorf("failed to setup heartbeat controller: %w", err)
 	}
 
-	return mgr, nil
+	return m, nil
 }
 
 // flagsKey is the key used to store the parsed command-line flags in a
@@ -139,7 +139,7 @@ func New() *cli.Command {
 			&cli.DurationFlag{
 				Name:        "heartbeat-renew-interval",
 				Usage:       "renew heartbeat lease on specified interval",
-				Value:       time.Duration(30 * time.Second),
+				Value:       30 * time.Second,
 				Sources:     cli.EnvVars("HEARTBEAT_RENEW_INTERVAL"),
 				Destination: &flags.heartbeatRenewInterval,
 			},
@@ -220,7 +220,7 @@ func New() *cli.Command {
 			&cli.DurationFlag{
 				Name:        "resync-interval",
 				Usage:       "requeue interval of the controllers",
-				Value:       time.Duration(30 * time.Second),
+				Value:       30 * time.Second,
 				Sources:     cli.EnvVars("RESYNC_INTERVAL"),
 				Destination: &flags.resyncInterval,
 			},
@@ -257,16 +257,16 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 	logger.Info("creating manager")
 
 	flags := getFlags(ctx)
-	mgr, err := flags.getManager(ctx)
+	m, err := flags.getManager(ctx)
 	if err != nil {
 		return err
 	}
 
 	logger.Info("creating actuators")
-	decoder := serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
+	decoder := serializer.NewCodecFactory(m.GetScheme(), serializer.EnableStrict).UniversalDecoder()
 	act, err := actuator.New(
-		actuator.WithReader(mgr.GetAPIReader()),
-		actuator.WithClient(mgr.GetClient()),
+		actuator.WithReader(m.GetAPIReader()),
+		actuator.WithClient(m.GetClient()),
 		actuator.WithDecoder(decoder),
 	)
 	if err != nil {
@@ -287,12 +287,12 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to create a controller: %w", err)
 	}
 
-	if err := c.SetupWithManager(ctx, mgr); err != nil {
+	if err := c.SetupWithManager(ctx, m); err != nil {
 		return fmt.Errorf("failed to setup controller with manager: %w", err)
 	}
 
 	logger.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
+	if err := m.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start manager: %w", err)
 	}
 

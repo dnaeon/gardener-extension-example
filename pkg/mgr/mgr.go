@@ -50,12 +50,11 @@ type mgr struct {
 
 // New creates a new [manager.Manager] with the given options.
 func New(opts ...Option) (manager.Manager, error) {
-
 	m := &mgr{
 		scheme:            runtime.NewScheme(),
 		addToSchemes:      make([]func(s *runtime.Scheme) error, 0),
 		metricsServerOpts: metricsserver.Options{},
-		baseCtxFunc:       func() context.Context { return context.Background() },
+		baseCtxFunc:       context.Background,
 		controllerOpts: controllerconfig.Controller{
 			MaxConcurrentReconciles: 5,
 			RecoverPanic:            ptr.To(true),
@@ -404,9 +403,9 @@ func WithCacheOptions(opts cache.Options) Option {
 // WithConnectionConfiguration is an [Option], which configures the client
 // connection options used by the [manager.Manager] with the given
 // [componentbaseconfigv1alpha1.ClientConnectionConfiguration] settings.
-func WithConnectionConfiguration(config *componentbaseconfigv1alpha1.ClientConnectionConfiguration) Option {
+func WithConnectionConfiguration(cfg *componentbaseconfigv1alpha1.ClientConnectionConfiguration) Option {
 	opt := func(m *mgr) error {
-		m.clientConnConfig = config
+		m.clientConnConfig = cfg
 
 		return nil
 	}

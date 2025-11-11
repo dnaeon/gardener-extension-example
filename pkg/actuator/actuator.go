@@ -15,6 +15,16 @@ import (
 	"gardener-extension-example/pkg/metrics"
 )
 
+const (
+	// name is the name of the actuator
+	name = "example"
+	// extensionType is the type of the extension resources, which the
+	// actuator reconciles.
+	extensionType = "example"
+	// finalizerSuffix is the finalizer suffix used by the actuator
+	finalizerSuffix = "extension-gardener-example"
+)
+
 // Actuator is an implementation of [extension.Actuator].
 type Actuator struct {
 	reader  client.Reader
@@ -78,21 +88,21 @@ func WithDecoder(d runtime.Decoder) Option {
 // Name returns the name of the actuator. This name can be used when registering
 // a controller for the actuator.
 func (a *Actuator) Name() string {
-	return "example"
+	return name
 }
 
 // FinalizerSuffix returns the finalizer suffix to use for the actuator. The
 // result of this method may be used when registering a controller with the
 // actuator.
 func (a *Actuator) FinalizerSuffix() string {
-	return "example"
+	return finalizerSuffix
 }
 
 // ExtensionType returns the type of extension resources the actuator
 // reconciles. The result of this method may be used when registering a
 // controller with the actuator.
 func (a *Actuator) ExtensionType() string {
-	return "example"
+	return extensionType
 }
 
 // ExtensionClasses returns the list of [extensionsv1alpha1.ExtensionClass]
