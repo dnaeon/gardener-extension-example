@@ -11,6 +11,8 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"gardener-extension-example/pkg/metrics"
 )
 
 // Actuator is an implementation of [extension.Actuator].
@@ -106,18 +108,60 @@ func (a *Actuator) ExtensionClasses() []extensionsv1alpha1.ExtensionClass {
 // care of any resources managed by the [Actuator]. This method implements the
 // [extension.Actuator] interface.
 func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
-	// TODO: boilerplate
-	// TODO: logging
-	// TODO: metrics
+	// The cluster name is the same as the name of the namespace for our
+	// [extensionsv1alpha1.Extension] resource.
+	clusterName := ex.Namespace
+
+	// Increment our example metrics counter
+	defer func() {
+		metrics.ActuatorOperationTotal.WithLabelValues(clusterName, "reconcile").Inc()
+	}()
+
+	logger.Info("reconciling extension", "name", ex.Name, "cluster", clusterName)
+
+	cluster, err := extensionscontroller.GetCluster(ctx, a.client, clusterName)
+	if err != nil {
+		return fmt.Errorf("failed to get cluster: %w", err)
+	}
+
+	// Nothing to do here, if the shoot cluster is hibernated at the moment.
+	if v1beta1helper.HibernationIsEnabled(cluster.Shoot) {
+		return nil
+	}
+
+	// TODO(user): if the extension requires provider config to be specified
+	// as part of the shoot spec, then uncomment the next lines.
+	//
+	// if ex.Spec.ProviderConfig == nil {
+	// 	return errors.New("no provider config specified")
+	// }
+
+	// Decode provider spec configuration into our known config type
+	// var foo myProviderConfigType
+	// if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &foo); err != nil {
+	// 	return errors.New("invalid provider spec configuration")
+	// }
+
+	// TODO(user): validate the decoded provider spec configuration.
+	// if foo.bar == "" {
+	// 	// Validate and report errors
+	// }
+
 	return nil
 }
 
 // Delete deletes any resources managed by the [Actuator]. This method
 // implements the [extension.Actuator] interface.
 func (a *Actuator) Delete(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
-	// TODO: boilerplate
-	// TODO: logging
-	// TODO: metrics
+	// Increment our example metrics counter
+	defer func() {
+		metrics.ActuatorOperationTotal.WithLabelValues(ex.Namespace, "delete").Inc()
+	}()
+
+	logger.Info("deleting resources managed by extension")
+
+	// TODO(user): implement logic for deleting anything managed by the extension
+
 	return nil
 }
 
@@ -125,18 +169,26 @@ func (a *Actuator) Delete(ctx context.Context, logger logr.Logger, ex *extension
 // because of a force-delete event of the shoot cluster. This method implements
 // the [extension.Actuator] interface.
 func (a *Actuator) ForceDelete(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
-	// TODO: boilerplate
-	// TODO: logging
-	// TODO: metrics
+	// Increment our example metrics counter
+	defer func() {
+		metrics.ActuatorOperationTotal.WithLabelValues(ex.Namespace, "force_delete").Inc()
+	}()
+
+	logger.Info("shoot has been force-deleted, deleting resources managed by extension")
+
+	// TODO(user): implement logic for deleting anything managed by the extension
+
 	return nil
 }
 
 // Restore restores the resources managed by the extension [Actuator]. This
 // method implements the [extension.Actuator] interface.
 func (a *Actuator) Restore(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
-	// TODO: boilerplate
-	// TODO: logging
-	// TODO: metrics
+	// Increment our example metrics counter
+	defer func() {
+		metrics.ActuatorOperationTotal.WithLabelValues(ex.Namespace, "restore").Inc()
+	}()
+
 	return a.Reconcile(ctx, logger, ex)
 }
 
@@ -144,8 +196,10 @@ func (a *Actuator) Restore(ctx context.Context, logger logr.Logger, ex *extensio
 // because of a shoot control-plane migration event. This method implements the
 // [extension.Actuator] interface.
 func (a *Actuator) Migrate(ctx context.Context, logger logr.Logger, ex *extensionsv1alpha1.Extension) error {
-	// TODO: boilerplate
-	// TODO: logging
-	// TODO: metrics
+	// Increment our example metrics counter
+	defer func() {
+		metrics.ActuatorOperationTotal.WithLabelValues(ex.Namespace, "migrate").Inc()
+	}()
+
 	return a.Reconcile(ctx, logger, ex)
 }
