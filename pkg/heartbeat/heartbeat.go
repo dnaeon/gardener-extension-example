@@ -1,4 +1,4 @@
-// Package heartbeat provides utilities for creating heartbeat controllers for
+// Package heartbeat provides utilities for creating heartbeat reconcilers for
 // extensions.
 package heartbeat
 

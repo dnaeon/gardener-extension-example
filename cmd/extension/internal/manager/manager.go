@@ -12,6 +12,7 @@ import (
 	"github.com/urfave/cli/v3"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,6 +40,8 @@ type flags struct {
 	zapLogFormat              string
 	resyncInterval            time.Duration
 	pprofBindAddr             string
+	clientConnQPS             float32
+	clientConnBurst           int32
 }
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
@@ -56,6 +59,10 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		mgr.WithHealthzCheck("healthz", healthz.Ping),
 		mgr.WithReadyzCheck("readyz", healthz.Ping),
 		mgr.WithPprofAddress(f.pprofBindAddr),
+		mgr.WithConnectionConfiguration(&componentbaseconfigv1alpha1.ClientConnectionConfiguration{
+			QPS:   f.clientConnQPS,
+			Burst: f.clientConnBurst,
+		}),
 	)
 
 	if err != nil {
@@ -216,6 +223,20 @@ func New() *cli.Command {
 				Value:       time.Duration(30 * time.Second),
 				Sources:     cli.EnvVars("RESYNC_INTERVAL"),
 				Destination: &flags.resyncInterval,
+			},
+			&cli.Float32Flag{
+				Name:        "client-conn-qps",
+				Usage:       "allowed client queries per second for the connection",
+				Value:       100.0,
+				Sources:     cli.EnvVars("CLIENT_CONNECTION_QPS"),
+				Destination: &flags.clientConnQPS,
+			},
+			&cli.Int32Flag{
+				Name:        "client-conn-burst",
+				Usage:       "client connection burst size",
+				Value:       130,
+				Sources:     cli.EnvVars("CLIENT_CONNECTION_BURST"),
+				Destination: &flags.clientConnBurst,
 			},
 		},
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
