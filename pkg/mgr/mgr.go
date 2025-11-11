@@ -12,6 +12,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	controllerconfig "sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -39,6 +41,8 @@ type mgr struct {
 	extraMetricsHandlers    map[string]http.Handler
 	healthzChecks           map[string]healthz.Checker
 	readyzChecks            map[string]healthz.Checker
+	clientOpts              client.Options
+	cacheOpts               cache.Options
 }
 
 // New creates a new [manager.Manager] with the given options.
@@ -95,6 +99,8 @@ func New(opts ...Option) (manager.Manager, error) {
 			WebhookServer:              m.webhookServer,
 			Logger:                     m.logger,
 			PprofBindAddress:           m.pprofAddr,
+			Client:                     m.clientOpts,
+			Cache:                      m.cacheOpts,
 		},
 	)
 	if err != nil {
@@ -357,6 +363,30 @@ func WithPprofAddress(addr string) Option {
 func WithRunnable(r manager.Runnable) Option {
 	opt := func(m *mgr) error {
 		m.runnables = append(m.runnables, r)
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithClientOptions is an [Option], which configures the [manager.Runnable]
+// with the given [client.Options].
+func WithClientOptions(opts client.Options) Option {
+	opt := func(m *mgr) error {
+		m.clientOpts = opts
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithCacheOptions is an [Option], which configures the [manager.Runnable] with
+// the given [cache.Options].
+func WithCacheOptions(opts cache.Options) Option {
+	opt := func(m *mgr) error {
+		m.cacheOpts = opts
 
 		return nil
 	}
