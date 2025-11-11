@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,10 +45,12 @@ type mgr struct {
 	readyzChecks            map[string]healthz.Checker
 	clientOpts              client.Options
 	cacheOpts               cache.Options
+	clientConnConfig        *componentbaseconfigv1alpha1.ClientConnectionConfiguration
 }
 
 // New creates a new [manager.Manager] with the given options.
 func New(opts ...Option) (manager.Manager, error) {
+
 	m := &mgr{
 		scheme:            runtime.NewScheme(),
 		addToSchemes:      make([]func(s *runtime.Scheme) error, 0),
@@ -83,6 +87,9 @@ func New(opts ...Option) (manager.Manager, error) {
 		}
 		m.restConfig = restConfig
 	}
+
+	// Apply any connection config settings, if we have such
+	util.ApplyClientConnectionConfigurationToRESTConfig(m.clientConnConfig, m.restConfig)
 
 	crMgr, err := manager.New(
 		m.restConfig,
@@ -370,7 +377,7 @@ func WithRunnable(r manager.Runnable) Option {
 	return opt
 }
 
-// WithClientOptions is an [Option], which configures the [manager.Runnable]
+// WithClientOptions is an [Option], which configures the [manager.Manager]
 // with the given [client.Options].
 func WithClientOptions(opts client.Options) Option {
 	opt := func(m *mgr) error {
@@ -382,11 +389,24 @@ func WithClientOptions(opts client.Options) Option {
 	return opt
 }
 
-// WithCacheOptions is an [Option], which configures the [manager.Runnable] with
+// WithCacheOptions is an [Option], which configures the [manager.Manager] with
 // the given [cache.Options].
 func WithCacheOptions(opts cache.Options) Option {
 	opt := func(m *mgr) error {
 		m.cacheOpts = opts
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithConnectionConfiguration is an [Option], which configures the client
+// connection options used by the [manager.Manager] with the given
+// [componentbaseconfigv1alpha1.ClientConnectionConfiguration] settings.
+func WithConnectionConfiguration(config *componentbaseconfigv1alpha1.ClientConnectionConfiguration) Option {
+	opt := func(m *mgr) error {
+		m.clientConnConfig = config
 
 		return nil
 	}
