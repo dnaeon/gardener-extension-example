@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
+	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,6 +44,18 @@ type flags struct {
 	pprofBindAddr             string
 	clientConnQPS             float32
 	clientConnBurst           int32
+
+	// The following flags are meant to be specified by the Helm chart,
+	// which gardenlet will invoke during deployment. The value of each flag
+	// is derived from a list of extra values, which gardenlet passes to
+	// Helm.
+	//
+	// See the link below for more details.
+	//
+	// https://github.com/gardener/gardener/blob/d5071c800378616eb6bb2c7662b4b28f4cfe7406/pkg/gardenlet/controller/controllerinstallation/controllerinstallation/reconciler.go#L236-L263
+	gardenerVersion       string
+	seedName              string
+	gardenletFeatureGates map[featuregate.Feature]bool
 }
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
@@ -102,7 +116,9 @@ func getFlags(ctx context.Context) *flags {
 
 // New creates a new [cli.Command] for running the controller manager.
 func New() *cli.Command {
-	var flags flags
+	flags := flags{
+		gardenletFeatureGates: make(map[featuregate.Feature]bool),
+	}
 
 	cmd := &cli.Command{
 		Name:    "manager",
@@ -237,6 +253,38 @@ func New() *cli.Command {
 				Value:       130,
 				Sources:     cli.EnvVars("CLIENT_CONNECTION_BURST"),
 				Destination: &flags.clientConnBurst,
+			},
+			// The following flags are meant to be specified by the
+			// Helm chart, which is rendered and deployed by the
+			// gardenlet.
+			//
+			// During deployment the gardenlet will provide extra
+			// values to Helm, which our CLI app can pick up.
+			&cli.StringFlag{
+				Name:        "gardener-version",
+				Usage:       "version of gardener provided by gardenlet during deployment",
+				Destination: &flags.gardenerVersion,
+			},
+			&cli.StringFlag{
+				Name:        "seed-name",
+				Usage:       "seed name provided by gardenlet during deployment",
+				Destination: &flags.seedName,
+			},
+			&cli.StringMapFlag{
+				Name:    "gardenlet-feature-flag",
+				Aliases: []string{"gardenlet-ff"},
+				Usage:   "gardenlet feature flag provided by gardenlet during deployment",
+				Action: func(ctx context.Context, c *cli.Command, items map[string]string) error {
+					for feat, val := range items {
+						enabled, err := strconv.ParseBool(val)
+						if err != nil {
+							return fmt.Errorf("invalid value for gardenlet feature gate: %w", err)
+						}
+						flags.gardenletFeatureGates[featuregate.Feature(feat)] = enabled
+					}
+
+					return nil
+				},
 			},
 		},
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
