@@ -274,9 +274,8 @@ func New() *cli.Command {
 				Destination: &flags.gardenerVersion,
 			},
 			&cli.StringMapFlag{
-				Name:    "gardenlet-feature-flag",
-				Aliases: []string{"gardenlet-ff"},
-				Usage:   "gardenlet feature flag provided by gardenlet during deployment",
+				Name:  "gardenlet-feature-gate",
+				Usage: "gardenlet feature gate provided by gardenlet during deployment",
 				Action: func(ctx context.Context, c *cli.Command, items map[string]string) error {
 					for feat, val := range items {
 						enabled, err := strconv.ParseBool(val)
