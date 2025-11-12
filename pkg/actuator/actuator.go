@@ -10,6 +10,7 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/component-base/featuregate"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"gardener-extension-example/pkg/metrics"
@@ -30,6 +31,16 @@ type Actuator struct {
 	reader  client.Reader
 	client  client.Client
 	decoder runtime.Decoder
+
+	// The following fields are usually derived from the list of extra Helm
+	// values provided by gardenlet during the deployment of the extension.
+	//
+	// See the link below for more details about how gardenlet provides
+	// extra values to Helm during the extension deployment.
+	//
+	// https://github.com/gardener/gardener/blob/d5071c800378616eb6bb2c7662b4b28f4cfe7406/pkg/gardenlet/controller/controllerinstallation/controllerinstallation/reconciler.go#L236-L263
+	gardenerVersion       string
+	gardenletFeatureGates map[featuregate.Feature]bool
 }
 
 var _ extension.Actuator = &Actuator{}
@@ -39,7 +50,10 @@ type Option func(a *Actuator) error
 
 // New creates a new actuator with the given options.
 func New(opts ...Option) (*Actuator, error) {
-	act := &Actuator{}
+	act := &Actuator{
+		gardenletFeatureGates: make(map[featuregate.Feature]bool),
+	}
+
 	for _, opt := range opts {
 		if err := opt(act); err != nil {
 			return nil, err
@@ -78,6 +92,34 @@ func WithReader(r client.Reader) Option {
 func WithDecoder(d runtime.Decoder) Option {
 	opt := func(a *Actuator) error {
 		a.decoder = d
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithGardenerVersion is an [Option], which configures the [Actuator] with the
+// given version of Gardener. This version of Gardener is usually provided by
+// the gardenlet as part of the extra Helm values during deployment of the
+// extension.
+func WithGardenerVersion(v string) Option {
+	opt := func(a *Actuator) error {
+		a.gardenerVersion = v
+
+		return nil
+	}
+
+	return opt
+}
+
+// WithGardenletFeatures is an [Option], which configures the [Actuator] with
+// the given gardenlet feature gates. These feature gates are usually provided
+// by the gardenlet as part of the extra Helm values during deployment of the
+// extension.
+func WithGardenletFeatures(feats map[featuregate.Feature]bool) Option {
+	opt := func(a *Actuator) error {
+		a.gardenletFeatureGates = feats
 
 		return nil
 	}

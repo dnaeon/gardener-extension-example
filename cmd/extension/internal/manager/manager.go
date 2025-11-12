@@ -54,7 +54,6 @@ type flags struct {
 	//
 	// https://github.com/gardener/gardener/blob/d5071c800378616eb6bb2c7662b4b28f4cfe7406/pkg/gardenlet/controller/controllerinstallation/controllerinstallation/reconciler.go#L236-L263
 	gardenerVersion       string
-	seedName              string
 	gardenletFeatureGates map[featuregate.Feature]bool
 }
 
@@ -265,11 +264,6 @@ func New() *cli.Command {
 				Usage:       "version of gardener provided by gardenlet during deployment",
 				Destination: &flags.gardenerVersion,
 			},
-			&cli.StringFlag{
-				Name:        "seed-name",
-				Usage:       "seed name provided by gardenlet during deployment",
-				Destination: &flags.seedName,
-			},
 			&cli.StringMapFlag{
 				Name:    "gardenlet-feature-flag",
 				Aliases: []string{"gardenlet-ff"},
@@ -316,6 +310,8 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 		actuator.WithReader(m.GetAPIReader()),
 		actuator.WithClient(m.GetClient()),
 		actuator.WithDecoder(decoder),
+		actuator.WithGardenerVersion(flags.gardenerVersion),
+		actuator.WithGardenletFeatures(flags.gardenletFeatureGates),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create actuator: %w", err)
