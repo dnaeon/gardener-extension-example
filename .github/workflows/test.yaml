@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
+      - name: Check license headers
+        run: |
+          set -eu
+          make checklicense
       - name: Run linter
         run: |
           set -eu
