@@ -2,6 +2,7 @@
 
 # Set SHELL to bash and configure options
 SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
 
 GOCMD?= go
 SRC_ROOT := $(shell git rev-parse --show-toplevel)
@@ -26,6 +27,10 @@ endif
 IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
 IMAGE_TAG ?= $(EFFECTIVE_VERSION)
 
+# Configure envtest version for Kubernetes to match the one we use for k8s.io/api
+ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{ printf "1.%d.%d", $$3, $$4 }')
+
+# Common options for the `addlicense' tool
 ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
 			-ignore "dev/**" \
 			-ignore "**/*.md" \
@@ -65,11 +70,9 @@ get:
 
 .PHONY: test
 test:
-	$(GOCMD) test -v -race ./...
-
-.PHONY: test-cover
-test-cover:
-	$(GOCMD) test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+	@echo "Setting up envtest for Kubernetes version v$(ENVTEST_K8S_VERSION) ..."
+	@KUBEBUILDER_ASSETS="$$( $(GO_TOOL) setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCAL_BIN) -p path )" \
+		$(GOCMD) test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
 .PHONY: docker-build
 docker-build:
@@ -79,19 +82,15 @@ docker-build:
 update-tools:
 	$(GOCMD) get -u -modfile $(TOOLS_MOD_FILE) tool
 
-
-
 .PHONY: addlicense
 addlicense:
 	@$(GO_TOOL) addlicense $(ADDLICENSE_OPTS) .
 
 .PHONY: checklicense
 checklicense:
-	@files=$$( $(GO_TOOL) addlicense -check $(ADDLICENSE_OPTS) .); \
-	rc=$$?; \
-	if [[ -n "$${files}" ]]; then \
+	@files=$$( $(GO_TOOL) addlicense -check $(ADDLICENSE_OPTS) .) || { \
 		echo "Missing license headers in the following files:"; \
 		echo "$${files}"; \
 		echo "Run 'make addlicense' in order to fix them."; \
-	fi; \
-	exit $${rc}
+		exit 1; \
+	}
