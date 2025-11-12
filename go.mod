@@ -3,7 +3,7 @@ module gardener-extension-example
 go 1.25.0
 
 require (
-	github.com/gardener/gardener v1.131.2
+	github.com/gardener/gardener v1.131.3
 	github.com/go-logr/logr v1.4.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/urfave/cli/v3 v3.6.0
