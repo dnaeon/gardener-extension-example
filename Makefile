@@ -2,6 +2,7 @@
 
 GOCMD?= go
 SRC_ROOT := $(shell git rev-parse --show-toplevel)
+HACK_DIR := $(SRC_ROOT)/hack
 SRC_DIRS := $(shell $(GOCMD) list -f '{{ .Dir }}' ./...)
 
 GOOS := $(shell $(GOCMD) env GOOS)
@@ -21,6 +22,14 @@ endif
 
 IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
 IMAGE_TAG ?= $(EFFECTIVE_VERSION)
+
+ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
+			-ignore "dev/**" \
+			-ignore "**/*.md" \
+			-ignore "**/*.html" \
+			-ignore "**/*.yaml" \
+			-ignore "**/*.yml" \
+			-ignore "**/Dockerfile"
 
 $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
@@ -66,3 +75,18 @@ docker-build:
 .PHONY: update-tools
 update-tools:
 	$(GOCMD) get -u -modfile $(TOOLS_MOD_FILE) tool
+
+
+
+.PHONY: addlicense
+addlicense:
+	@$(GO_TOOL) addlicense $(ADDLICENSE_OPTS) .
+
+.PHONY: checklicense
+checklicense:
+	@files=$$( $(GO_TOOL) addlicense -check $(ADDLICENSE_OPTS) .); \
+	if [[ -n "$${files}" ]]; then \
+		echo "Missing license headers in the following files:"; \
+		echo "$${files}"; \
+		echo "Run 'make addlicense' in order to fix them."; \
+	fi
