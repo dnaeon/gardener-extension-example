@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strconv"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/urfave/cli/v3"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/clientcmd"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
 	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -209,6 +211,9 @@ func New() *cli.Command {
 				Usage:       "path to a kubeconfig when running out-of-cluster",
 				Sources:     cli.EnvVars("KUBECONFIG"),
 				Destination: &flags.kubeconfig,
+				Action: func(ctx context.Context, c *cli.Command, val string) error {
+					return os.Setenv(clientcmd.RecommendedConfigPathEnvVar, val)
+				},
 			},
 			&cli.StringFlag{
 				Name:  "log-level",
@@ -339,7 +344,9 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to setup controller with manager: %w", err)
 	}
 
-	logger.Info("configured gardener version", "version", flags.gardenerVersion)
+	if flags.gardenerVersion != "" {
+		logger.Info("configured gardener version", "version", flags.gardenerVersion)
+	}
 	for feat, enabled := range flags.gardenletFeatureGates {
 		logger.Info("configured gardenlet feature gate", "feature", feat, "enabled", enabled)
 	}
