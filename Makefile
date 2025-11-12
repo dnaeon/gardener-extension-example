@@ -1,5 +1,9 @@
 .DEFAULT_GOAL := build
 
+# Set SHELL to bash and configure options
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+
 GOCMD?= go
 SRC_ROOT := $(shell git rev-parse --show-toplevel)
 HACK_DIR := $(SRC_ROOT)/hack
