@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2025 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Package mgr provides utility functions for creating [manager.Manager] using a
 // functional options API.
 package mgr
