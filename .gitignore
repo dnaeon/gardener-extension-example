@@ -25,3 +25,6 @@ go.work.sum
 
 # direnv
 .envrc
+
+# Test coverage files
+coverage.txt
