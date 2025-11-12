@@ -2,7 +2,6 @@
 
 # Set SHELL to bash and configure options
 SHELL = /usr/bin/env bash -o pipefail
-.SHELLFLAGS = -ec
 
 GOCMD?= go
 SRC_ROOT := $(shell git rev-parse --show-toplevel)
@@ -89,8 +88,10 @@ addlicense:
 .PHONY: checklicense
 checklicense:
 	@files=$$( $(GO_TOOL) addlicense -check $(ADDLICENSE_OPTS) .); \
+	rc=$$?; \
 	if [[ -n "$${files}" ]]; then \
 		echo "Missing license headers in the following files:"; \
 		echo "$${files}"; \
 		echo "Run 'make addlicense' in order to fix them."; \
-	fi
+	fi; \
+	exit $${rc}
