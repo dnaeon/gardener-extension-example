@@ -335,6 +335,11 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to setup controller with manager: %w", err)
 	}
 
+	logger.Info("configured gardener version", "version", flags.gardenerVersion)
+	for feat, enabled := range flags.gardenletFeatureGates {
+		logger.Info("configured gardenlet feature gate", "feature", feat, "enabled", enabled)
+	}
+
 	logger.Info("starting manager")
 	if err := m.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start manager: %w", err)
