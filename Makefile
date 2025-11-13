@@ -27,8 +27,16 @@ endif
 IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
 IMAGE_TAG ?= $(EFFECTIVE_VERSION)
 
-# Configure envtest version for Kubernetes to match the one we use for k8s.io/api
-ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{ printf "1.%d.%d", $$3, $$4 }')
+# ENVTEST_K8S_VERSION configures the version of Kubernetes, which will be
+# installed by setup-envtest.
+#
+# In order to configure the Kubernetes version to match the version used by the
+# k8s.io/api package, use the following setting.
+#
+# ENVTEST_K8S_VERSION ?= $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{ printf "1.%d.%d", $$3, $$4 }')
+#
+# Or set the version here explicitly.
+ENVTEST_K8S_VERSION ?= 1.34.1
 
 # Common options for the `addlicense' tool
 ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
