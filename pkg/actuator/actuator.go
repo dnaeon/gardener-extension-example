@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	// name is the name of the actuator
-	name = "example"
-	// extensionType is the type of the extension resources, which the
+	// Name is the name of the actuator
+	Name = "example"
+	// ExtensionType is the type of the extension resources, which the
 	// actuator reconciles.
-	extensionType = "example"
-	// finalizerSuffix is the finalizer suffix used by the actuator
-	finalizerSuffix = "extension-gardener-example"
+	ExtensionType = "example"
+	// FinalizerSuffix is the finalizer suffix used by the actuator
+	FinalizerSuffix = "extension-gardener-example"
 )
 
 // Actuator is an implementation of [extension.Actuator].
@@ -134,21 +134,21 @@ func WithGardenletFeatures(feats map[featuregate.Feature]bool) Option {
 // Name returns the name of the actuator. This name can be used when registering
 // a controller for the actuator.
 func (a *Actuator) Name() string {
-	return name
+	return Name
 }
 
 // FinalizerSuffix returns the finalizer suffix to use for the actuator. The
 // result of this method may be used when registering a controller with the
 // actuator.
 func (a *Actuator) FinalizerSuffix() string {
-	return finalizerSuffix
+	return FinalizerSuffix
 }
 
 // ExtensionType returns the type of extension resources the actuator
 // reconciles. The result of this method may be used when registering a
 // controller with the actuator.
 func (a *Actuator) ExtensionType() string {
-	return extensionType
+	return ExtensionType
 }
 
 // ExtensionClasses returns the list of [extensionsv1alpha1.ExtensionClass]
