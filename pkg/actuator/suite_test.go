@@ -9,13 +9,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
-	gardenerclientset "github.com/gardener/gardener/pkg/client/core/clientset/versioned"
+	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,13 +24,12 @@ import (
 )
 
 var (
-	ctx            context.Context
-	cancel         context.CancelFunc
-	testEnv        *envtest.Environment
-	cfg            *rest.Config
-	k8sClient      client.Client
-	logger         logr.Logger
-	gardenerClient gardenerclientset.Interface
+	ctx       context.Context
+	cancel    context.CancelFunc
+	testEnv   *envtest.Environment
+	cfg       *rest.Config
+	k8sClient client.Client
+	logger    logr.Logger
 )
 
 func TestActuators(t *testing.T) {
@@ -52,8 +50,6 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		Scheme: scheme.Scheme,
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "test", "manifests", "crd", "gardener.cloud", "core", "v1"),
-			filepath.Join("..", "..", "test", "manifests", "crd", "gardener.cloud", "core", "v1beta1"),
 			filepath.Join("..", "..", "test", "manifests", "crd", "gardener.cloud", "extensions", "v1alpha1"),
 		},
 		ErrorIfCRDPathMissing: true,
@@ -67,10 +63,6 @@ var _ = BeforeSuite(func() {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
-
-	gardenerClient, err = gardenerclientset.NewForConfig(cfg)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(gardenerClient).NotTo(BeNil())
 })
 
 var _ = AfterSuite(func() {

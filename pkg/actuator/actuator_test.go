@@ -5,14 +5,16 @@
 package actuator_test
 
 import (
+	"encoding/json"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
-	"github.com/gardener/gardener/pkg/extensions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/component-base/featuregate"
@@ -49,46 +51,40 @@ var _ = Describe("Actuator", Ordered, func() {
 				},
 			},
 		}
-
-		cluster = &extensions.Cluster{
+		cloudProfile = &corev1beta1.CloudProfile{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: shootNamespace.Name,
+				Name: "local",
 			},
-			CloudProfile: &corev1beta1.CloudProfile{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "local",
+			Spec: corev1beta1.CloudProfileSpec{
+				Type: "local",
+			},
+		}
+		seed = &corev1beta1.Seed{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "local",
+			},
+			Spec: corev1beta1.SeedSpec{
+				Ingress: &corev1beta1.Ingress{
+					Domain: "ingress.local.seed.local.gardener.cloud",
 				},
-				Spec: corev1beta1.CloudProfileSpec{
+				Provider: corev1beta1.SeedProvider{
+					Type:   "local",
+					Region: "local",
+					Zones:  []string{"0"},
+				},
+			},
+		}
+		shoot = &corev1beta1.Shoot{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "local",
+				Namespace: projectNamespace.Name,
+			},
+			Spec: corev1beta1.ShootSpec{
+				SeedName: ptr.To("local"),
+				Provider: corev1beta1.Provider{
 					Type: "local",
 				},
-			},
-			Seed: &corev1beta1.Seed{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "local",
-				},
-				Spec: corev1beta1.SeedSpec{
-					Ingress: &corev1beta1.Ingress{
-						Domain: "ingress.local.seed.local.gardener.cloud",
-					},
-					Provider: corev1beta1.SeedProvider{
-						Type:   "local",
-						Region: "local",
-						Zones:  []string{"0"},
-					},
-				},
-			},
-			Shoot: &corev1beta1.Shoot{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "local",
-					Namespace: projectNamespace.Name,
-				},
-				Spec: corev1beta1.ShootSpec{
-					SeedName: ptr.To("local"),
-					Provider: corev1beta1.Provider{
-						Type: "local",
-					},
-					Region: "local",
-				},
+				Region: "local",
 			},
 		}
 	)
@@ -114,17 +110,81 @@ var _ = Describe("Actuator", Ordered, func() {
 		Expect(act.ExtensionClasses()).To(Equal([]extensionsv1alpha1.ExtensionClass{extensionsv1alpha1.ExtensionClassShoot}))
 	})
 
-	// TODO: add test with and without cluster
-	_ = cluster
+	It("should fail to reconcile when no cluster exists", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.Reconcile(ctx, logger, extResource)).Error().Should(HaveOccurred())
+	})
 
-	Context("When reconciling an extension resource", func() {
-		It("should successfully reconcile the resource", func() {
-			act, err := actuator.New(actuatorOpts...)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(act).NotTo(BeNil())
-			Expect(act.Reconcile(ctx, logger, extResource)).To(Succeed())
+	It("should succeed on Reconcile", func() {
+		cpData, err := json.Marshal(cloudProfile)
+		Expect(err).NotTo(HaveOccurred())
+		seedData, err := json.Marshal(seed)
+		Expect(err).NotTo(HaveOccurred())
+		shootData, err := json.Marshal(shoot)
+		Expect(err).NotTo(HaveOccurred())
 
-			// TODO(user): Add more tests covering the various scenarios
-		})
+		cluster := &extensionsv1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: shootNamespace.Name,
+			},
+			Spec: extensionsv1alpha1.ClusterSpec{
+				CloudProfile: runtime.RawExtension{
+					Raw: cpData,
+				},
+				Seed: runtime.RawExtension{
+					Raw: seedData,
+				},
+				Shoot: runtime.RawExtension{
+					Raw: shootData,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, shootNamespace)).To(Succeed())
+		Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.Reconcile(ctx, logger, extResource)).To(Succeed())
+
+		// TODO(user): Add more tests
+	})
+
+	It("should succeed on Delete", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.Delete(ctx, logger, extResource)).To(Succeed())
+
+		// TODO(user): Add more tests
+	})
+
+	It("should succeed on ForceDelete", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.ForceDelete(ctx, logger, extResource)).To(Succeed())
+
+		// TODO(user): Add more tests
+	})
+
+	It("should succeed on Restore", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.Restore(ctx, logger, extResource)).To(Succeed())
+
+		// TODO(user): Add more tests
+	})
+
+	It("should succeed on Migrate", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+		Expect(act.Migrate(ctx, logger, extResource)).To(Succeed())
+
+		// TODO(user): Add more tests
 	})
 })
