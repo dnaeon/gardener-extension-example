@@ -12,7 +12,7 @@ spec:
     listKind: SeedList
     plural: seeds
     singular: seed
-  scope: Namespaced
+  scope: Cluster
   versions:
   - name: v1beta1
     schema:
@@ -574,6 +574,11 @@ spec:
                         description: Annotations is a map of annotations that will
                           be injected/merged into every load balancer service object.
                         type: object
+                      class:
+                        description: |-
+                          Class configures the Service.spec.loadBalancerClass field for the load balancer services on the seed.
+                          Note that changing the loadBalancerClass of existing LoadBalancer services is denied by Kubernetes.
+                        type: string
                       externalTrafficPolicy:
                         description: |-
                           ExternalTrafficPolicy describes how nodes distribute service traffic they
@@ -912,3 +917,5 @@ spec:
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
