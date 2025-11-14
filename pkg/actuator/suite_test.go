@@ -50,7 +50,7 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		Scheme: scheme.Scheme,
 		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "test", "manifests", "crd", "gardener.cloud", "extensions", "v1alpha1"),
+			filepath.Join("..", "..", "test", "manifests", "crd", "extensions.gardener.cloud", "v1alpha1"),
 		},
 		ErrorIfCRDPathMissing: true,
 	}
