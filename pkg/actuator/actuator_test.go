@@ -7,11 +7,10 @@ package actuator_test
 import (
 	"encoding/json"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	corev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -107,7 +106,7 @@ var _ = Describe("Actuator", Ordered, func() {
 		Expect(act.Name()).To(Equal(actuator.Name))
 		Expect(act.ExtensionType()).To(Equal(actuator.ExtensionType))
 		Expect(act.FinalizerSuffix()).To(Equal(actuator.FinalizerSuffix))
-		Expect(act.ExtensionClasses()).To(Equal([]extensionsv1alpha1.ExtensionClass{extensionsv1alpha1.ExtensionClassShoot}))
+		Expect(act.ExtensionClass()).To(Equal(extensionsv1alpha1.ExtensionClassShoot))
 	})
 
 	It("should fail to reconcile when no cluster exists", func() {
