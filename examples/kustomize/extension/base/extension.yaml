@@ -7,7 +7,7 @@ spec:
     extension:
       helm:
         ociRepository:
-          ref: europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example:v0.1.0
+          ref: europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example:v0.1.0-aa1dcf5-dirty
   resources:
   - kind: Extension
     type: example
