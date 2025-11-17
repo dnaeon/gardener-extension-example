@@ -102,3 +102,13 @@ checklicense:
 		echo "Run 'make addlicense' in order to fix them."; \
 		exit 1; \
 	}
+
+.PHONY: generate-operator-extension
+generate-operator-extension:
+	@$(GO_TOOL) extension-generator \
+		--name example \
+		--component-category extension \
+		--provider-type example \
+		--destination $(SRC_ROOT)/examples/extension/base/extension.yaml \
+		--extension-oci-repository $(IMAGE):$(IMAGE_TAG)
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/extension
