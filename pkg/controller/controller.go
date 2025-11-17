@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	ctrlutils "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionsctrl "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	crctrl "sigs.k8s.io/controller-runtime/pkg/controller"
@@ -51,7 +51,7 @@ type Controller struct {
 
 	// watchBuilder defines additional watches on controllers that should be
 	// set up.
-	watchBuilder ctrlutils.WatchBuilder
+	watchBuilder extensionsctrl.WatchBuilder
 
 	// IgnoreOperationAnnotation specifies whether to ignore the operation
 	// annotation or not.  If the annotation is not ignored, the extension
@@ -198,10 +198,10 @@ func WithExtensionType(extensionType string) Option {
 }
 
 // WithWatchBuilder is an [Option], which configures the [Controller] to
-// use the given [controllerutils.WatchBuilder].
-func WithWatchBuilder(extensionType string) Option {
+// use the given [crutils.WatchBuilder].
+func WithWatchBuilder(builder extensionsctrl.WatchBuilder) Option {
 	opt := func(c *Controller) error {
-		c.extensionType = extensionType
+		c.watchBuilder = builder
 
 		return nil
 	}
