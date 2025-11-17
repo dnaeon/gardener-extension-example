@@ -331,7 +331,7 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 		controller.WithName(act.Name()),
 		controller.WithExtensionType(act.ExtensionType()),
 		controller.WithFinalizerSuffix(act.FinalizerSuffix()),
-		controller.WithExtensionClasses(act.ExtensionClasses()),
+		controller.WithExtensionClass(act.ExtensionClass()),
 		controller.WithIgnoreOperationAnnotation(flags.ignoreOperationAnnotation),
 		controller.WithResyncInterval(flags.resyncInterval),
 	)

@@ -13,12 +13,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 
-	extensionsctrl "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	predicateutils "github.com/gardener/gardener/pkg/controllerutils/predicate"
 	crctrl "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"gardener-extension-example/pkg/actuator"
 	"gardener-extension-example/pkg/controller"
@@ -88,7 +87,7 @@ var _ = Describe("Controller", Ordered, func() {
 			controller.WithActuator(act),
 			controller.WithName("example"),
 			controller.WithExtensionType("example"),
-			controller.WithExtensionClasses([]v1alpha1.ExtensionClass{v1alpha1.ExtensionClassShoot}),
+			controller.WithExtensionClass(v1alpha1.ExtensionClassShoot),
 			controller.WithFinalizerSuffix("custom-finalizer-suffix"),
 			controller.WithControllerOptions(crctrl.Options{
 				RecoverPanic:            ptr.To(true),
@@ -96,8 +95,8 @@ var _ = Describe("Controller", Ordered, func() {
 			}),
 			controller.WithIgnoreOperationAnnotation(true),
 			controller.WithResyncInterval(30 * time.Second),
-			controller.WithPredicates([]predicate.Predicate{predicateutils.HasName("example")}),
-			controller.WithWatchBuilder(extensionsctrl.NewWatchBuilder()),
+			controller.WithPredicate(predicateutils.HasName("example")),
+			controller.WithWatchBuilder(extensionscontroller.NewWatchBuilder()),
 		}
 		c, err := controller.New(opts...)
 

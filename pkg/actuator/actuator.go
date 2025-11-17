@@ -151,13 +151,11 @@ func (a *Actuator) ExtensionType() string {
 	return ExtensionType
 }
 
-// ExtensionClasses returns the list of [extensionsv1alpha1.ExtensionClass]
-// items for the actuator. The result of this method may be used when
-// registering a controller with the actuator.
-func (a *Actuator) ExtensionClasses() []extensionsv1alpha1.ExtensionClass {
-	return []extensionsv1alpha1.ExtensionClass{
-		extensionsv1alpha1.ExtensionClassShoot,
-	}
+// ExtensionClass returns the [extensionsv1alpha1.ExtensionClass] for the
+// actuator. The result of this method may be used when registering a controller
+// with the actuator.
+func (a *Actuator) ExtensionClass() extensionsv1alpha1.ExtensionClass {
+	return extensionsv1alpha1.ExtensionClassShoot
 }
 
 // Reconcile reconciles the [extensionsv1alpha1.Extension] resource by taking

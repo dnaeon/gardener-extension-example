@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	extensionsctrl "github.com/gardener/gardener/extensions/pkg/controller"
+	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	crctrl "sigs.k8s.io/controller-runtime/pkg/controller"
@@ -51,7 +51,7 @@ type Controller struct {
 
 	// watchBuilder defines additional watches on controllers that should be
 	// set up.
-	watchBuilder extensionsctrl.WatchBuilder
+	watchBuilder extensionscontroller.WatchBuilder
 
 	// IgnoreOperationAnnotation specifies whether to ignore the operation
 	// annotation or not.  If the annotation is not ignored, the extension
@@ -68,7 +68,8 @@ type Controller struct {
 // New creates a new [Controller] with the given options.
 func New(opts ...Option) (*Controller, error) {
 	c := &Controller{
-		predicates: make([]predicate.Predicate, 0),
+		predicates:       make([]predicate.Predicate, 0),
+		extensionClasses: make([]extensionsv1alpha1.ExtensionClass, 0),
 	}
 
 	for _, opt := range opts {
@@ -173,11 +174,11 @@ func WithControllerOptions(opts crctrl.Options) Option {
 	return opt
 }
 
-// WithPredicates is an [Option], which configures the [Controller] to
-// use the given [predicate.Predicate].
-func WithPredicates(predicates []predicate.Predicate) Option {
+// WithPredicate is an [Option], which configures the [Controller] to use the
+// given [predicate.Predicate].
+func WithPredicate(pred predicate.Predicate) Option {
 	opt := func(c *Controller) error {
-		c.predicates = predicates
+		c.predicates = append(c.predicates, pred)
 
 		return nil
 	}
@@ -199,7 +200,7 @@ func WithExtensionType(extensionType string) Option {
 
 // WithWatchBuilder is an [Option], which configures the [Controller] to
 // use the given [crutils.WatchBuilder].
-func WithWatchBuilder(builder extensionsctrl.WatchBuilder) Option {
+func WithWatchBuilder(builder extensionscontroller.WatchBuilder) Option {
 	opt := func(c *Controller) error {
 		c.watchBuilder = builder
 
@@ -221,11 +222,11 @@ func WithIgnoreOperationAnnotation(ignore bool) Option {
 	return opt
 }
 
-// WithExtensionClasses is an [Option], which configures the [Controller] to be
-// responsible for the given list of [extensionsv1alpha1.ExtensionClass] items.
-func WithExtensionClasses(items []extensionsv1alpha1.ExtensionClass) Option {
+// WithExtensionClass is an [Option], which configures the [Controller] to be
+// responsible for the given [extensionsv1alpha1.ExtensionClass].
+func WithExtensionClass(item extensionsv1alpha1.ExtensionClass) Option {
 	opt := func(c *Controller) error {
-		c.extensionClasses = items
+		c.extensionClasses = append(c.extensionClasses, item)
 
 		return nil
 	}
