@@ -1,0 +1,87 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.extension.Name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.extension.name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+rules:
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - clusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - extensions
+  - extensions/status
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+
+# Enable the permissions below, if your extension needs to work with
+# ManagedResources, Deployments, Secrets, Webhooks, etc.
+#
+# - apiGroups:
+#   - apps
+#   resources:
+#   - deployments
+#   verbs:
+#   - get
+# - apiGroups:
+#   - ""
+#   resources:
+#   - pods
+#   verbs:
+#   - list
+# - apiGroups:
+#   - resources.gardener.cloud
+#   resources:
+#   - managedresources
+#   verbs:
+#   - get
+#   - list
+#   - watch
+#   - create
+#   - update
+#   - patch
+#   - delete
+# - apiGroups:
+#   - ""
+#   resources:
+#   - secrets
+#   verbs:
+#   - get
+#   - list
+#   - watch
+#   - create
+#   - update
+#   - patch
+#   - delete
+# - apiGroups:
+#   - admissionregistration.k8s.io
+#   resources:
+#   - mutatingwebhookconfigurations
+#   verbs:
+#   - get
+#   - list
+#   - watch
+#   - update
+#   - create
+#   - patch
