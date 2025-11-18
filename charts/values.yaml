@@ -125,6 +125,7 @@ podSecurityContext: {}
   # runAsGroup: 2000
   # fsGroup: 3000
 
+# Security Context for pod containers.
 securityContext:
   allowPrivilegeEscalation: false
   capabilities:
@@ -140,6 +141,8 @@ securityContext:
 #
 # https://kubernetes.io/docs/concepts/services-networking/service/
 service:
+  # Specifies whether a service should be created
+  create: true
   # Service type.
   # See: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
