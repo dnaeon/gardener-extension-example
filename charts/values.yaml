@@ -70,18 +70,19 @@ gardener:
 
 # ServiceAccount settings.
 #
+# The name of the service account is derived from the .Values.extension.name
+# value.
+#
 # See the link below for more details:
+#
 # https://kubernetes.io/docs/concepts/security/service-accounts/
 serviceAccount:
   # Specifies whether a service account should be created
   create: true
-  # Automatically mount a ServiceAccount's API credentials?
+  # Automount API credentials, if set to true.
   automount: false
-  # Annotations to add to the service account
+  # Additional annotations to add to the service account
   annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a default name is set from .Values.extension.name
-  name: ""
 
 # Extension image settings.
 #
