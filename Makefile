@@ -124,3 +124,15 @@ check-helm:
 			-output pretty \
 			-schema-location default \
 			-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+
+.PHONY: check-examples
+check-examples:
+	@$(GO_TOOL) kubeconform \
+		-skip Kustomization \
+		-strict \
+		-verbose \
+		-summary \
+		-output pretty \
+		-schema-location default \
+		-schema-location "$(SRC_ROOT)/test/schemas/{{.Group}}/{{.ResourceAPIVersion}}/{{.ResourceKind}}.json" \
+		./examples
