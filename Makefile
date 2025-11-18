@@ -111,4 +111,16 @@ generate-operator-extension:
 		--provider-type example \
 		--destination $(SRC_ROOT)/examples/kustomize/extension/base/extension.yaml \
 		--extension-oci-repository $(IMAGE):$(IMAGE_TAG)
-	$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/kustomize/extension > $(SRC_ROOT)/examples/extension.yaml
+	$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/kustomize/extension > $(SRC_ROOT)/examples/operator-extension.yaml
+
+.PHONY: check-helm
+check-helm:
+	@$(GO_TOOL) helm lint $(SRC_ROOT)/charts
+	@$(GO_TOOL) helm template $(SRC_ROOT)/charts | \
+		$(GO_TOOL) kubeconform \
+			-strict \
+			-verbose \
+			-summary \
+			-output pretty \
+			-schema-location default \
+			-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
