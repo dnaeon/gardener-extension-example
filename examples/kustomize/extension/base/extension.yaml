@@ -1,7 +1,7 @@
 apiVersion: operator.gardener.cloud/v1alpha1
 kind: Extension
 metadata:
-  name: example
+  name: gardener-extension-example
 spec:
   deployment:
     extension:
