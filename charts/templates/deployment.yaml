@@ -18,7 +18,7 @@ spec:
         {{- if .Values.extension.metrics.enable_scraping }}
         prometheus.io/name: {{ .Release.Name }}
         prometheus.io/scrape: "true"
-        prometheus.io/port: {{ .Values.extension.metrics.bind_address | trimPrefix ":" }}
+        prometheus.io/port: {{ .Values.extension.metrics.bind_address | trimPrefix ":" | quote }}
         {{- end }}
         {{- with .Values.podAnnotations }}
           {{- toYaml . | nindent 8 }}
@@ -76,17 +76,23 @@ spec:
               protocol: TCP
             {{- end }}
           livenessProbe:
+            failureThreshold: 3
             httpGet:
               path: /healthz
               port: {{ .Values.extension.health.bind_address | trimPrefix ":" }}
               scheme: HTTP
-              initialDelaySeconds: 10
+            initialDelaySeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 10
           readinessProbe:
+            failureThreshold: 3
             httpGet:
               path: /readyz
               port: {{ .Values.extension.health.bind_address | trimPrefix ":" }}
               scheme: HTTP
-              initialDelaySeconds: 5
+            initialDelaySeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 10
           {{- with .Values.resources }}
           resources:
             {{- toYaml . | nindent 12 }}

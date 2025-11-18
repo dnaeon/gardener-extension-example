@@ -12,5 +12,5 @@ roleRef:
   name: {{ .Values.extension.name }}
 subjects:
 - kind: ServiceAccount
-  name: {{ include "charts.serviceAccountName" . }}
+  name: {{ .Values.extension.name }}
   namespace: {{ .Release.Namespace }}
