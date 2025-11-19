@@ -34,6 +34,13 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - list
+  - watch
 
 # Enable the permissions below, if your extension needs to work with
 # ManagedResources, Deployments, Secrets, Webhooks, etc.
