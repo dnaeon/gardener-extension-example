@@ -106,7 +106,7 @@ checklicense:
 .PHONY: generate-operator-extension
 generate-operator-extension:
 	$(GO_TOOL) extension-generator \
-		--name example \
+		--name gardener-extension-example \
 		--component-category extension \
 		--provider-type example \
 		--destination $(SRC_ROOT)/examples/kustomize/extension/base/extension.yaml \

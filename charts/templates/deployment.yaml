@@ -42,26 +42,28 @@ spec:
       {{- end }}
       containers:
         - name: {{ .Values.extension.name }}
-          args:
-            - --extension-name {{ .Values.extension.name }}
-            - --metrics-bind-address {{ .Values.extension.metrics.bind_address }}
-            - --pprof-bind-address {{ .Values.extension.pprof.bind_address }}
-            - --health-probe-bind-address {{ .Values.extension.health.bind_address }}
-            - --heartbeat-renew-interval {{ .Values.extension.heartbeat.renew_interval }}
-            - --heartbeat-namespace {{ .Release.Namespace }}
-            - --leader-election {{ .Values.extension.leader_election.enabled }}
-            - --leader-election-id {{ .Values.extension.leader_election.election_id }}
-            - --leader-election-namespace {{ .Release.Namespace }}
-            - --ignore-operation-annotation {{ .Values.extension.manager.ignore_operation_annotation }}
-            - --max-concurrent-reconciles {{ .Values.extension.manager.max_concurrent_reconciles }}
-            - --log-level {{ .Values.extension.logging.level }}
-            - --log-format {{ .Values.extension.logging.format }}
-            - --resync-interval {{ .Values.extension.manager.resync_interval }}
-            - --client-conn-qps {{ .Values.extension.manager.qps }}
-            - --client-conn-burst {{ .Values.extension.manager.burst }}
-            - --gardener-version {{ .Values.gardener.version }}
+          command:
+            - extension
+            - manager
+            - --extension-name={{ .Values.extension.name }}
+            - --metrics-bind-address={{ .Values.extension.metrics.bind_address }}
+            - --pprof-bind-address={{ .Values.extension.pprof.bind_address }}
+            - --health-probe-bind-address={{ .Values.extension.health.bind_address }}
+            - --heartbeat-renew-interval={{ .Values.extension.heartbeat.renew_interval }}
+            - --heartbeat-namespace={{ .Release.Namespace }}
+            - --leader-election={{ .Values.extension.leader_election.enabled }}
+            - --leader-election-id={{ .Values.extension.leader_election.election_id }}
+            - --leader-election-namespace={{ .Release.Namespace }}
+            - --ignore-operation-annotation={{ .Values.extension.manager.ignore_operation_annotation }}
+            - --max-concurrent-reconciles={{ .Values.extension.manager.max_concurrent_reconciles }}
+            - --log-level={{ .Values.extension.logging.level }}
+            - --log-format={{ .Values.extension.logging.format }}
+            - --resync-interval={{ .Values.extension.manager.resync_interval }}
+            - --client-conn-qps={{ .Values.extension.manager.qps }}
+            - --client-conn-burst={{ .Values.extension.manager.burst }}
+            - --gardener-version={{ .Values.gardener.version }}
             {{- range $key, $val := .Values.gardener.gardenlet.featureGates }}
-            - --gardenlet-feature-gate {{ $key }}={{ $val }}
+            - --gardenlet-feature-gate={{ $key }}={{ $val }}
             {{- end }}
           {{- with .Values.securityContext }}
           securityContext:
