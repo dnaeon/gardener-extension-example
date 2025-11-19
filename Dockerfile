@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bi
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
-COPY --from=builder /workspace/bin/extension .
+COPY --from=builder /workspace/bin/extension /usr/local/bin/extension
 USER 65532:65532
 
-ENTRYPOINT ["/extension"]
+ENTRYPOINT ["/usr/local/bin/extension"]
