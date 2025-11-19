@@ -24,8 +24,18 @@ ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
 endif
 
+# Name and tag for the extension image
 IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
 IMAGE_TAG ?= $(EFFECTIVE_VERSION)
+
+# Name and version of the Gardener extension.
+EXTENSION_NAME ?= gardener-extension-example
+EXTENSION_VERSION ?= $(EFFECTIVE_VERSION)
+
+# Registry used for local development
+LOCAL_REGISTRY ?= garden.local.gardener.cloud:5001
+# Name of the kind cluster for local development
+KIND_CLUSTER ?= gardener-local
 
 # ENVTEST_K8S_VERSION configures the version of Kubernetes, which will be
 # installed by setup-envtest.
@@ -136,3 +146,14 @@ check-examples:
 		-schema-location default \
 		-schema-location "$(SRC_ROOT)/test/schemas/{{.Group}}/{{.ResourceAPIVersion}}/{{.ResourceKind}}.json" \
 		./examples
+
+.PHONY: kind-load-image
+kind-load-image:
+	@$(MAKE) docker-build
+	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(IMAGE_TAG)
+
+.PHONY: helm-load-oci-chart
+helm-load-oci-chart:
+	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(EXTENSION_VERSION)
+	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
+	@rm -f $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz
