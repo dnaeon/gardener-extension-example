@@ -48,6 +48,14 @@ KIND_CLUSTER ?= gardener-local
 # Or set the version here explicitly.
 ENVTEST_K8S_VERSION ?= 1.34.1
 
+# Common options for the `kubeconform' tool
+KUBECONFORM_OPTS ?= 	-strict \
+			-verbose \
+			-summary \
+			-output pretty \
+			-skip Kustomization \
+			-schema-location default
+
 # Common options for the `addlicense' tool
 ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
 			-ignore "dev/**" \
@@ -71,7 +79,7 @@ lint:
 $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 	$(GOCMD) build \
 		-o $(LOCAL_BIN)/ \
-		-ldflags="-X 'gardener-extension-example/pkg/version.Version=${EFFECTIVE_VERSION}'" \
+		-ldflags="-X '$(EXTENSION_NAME)/pkg/version.Version=${EFFECTIVE_VERSION}'" \
 		./cmd/extension
 
 .PHONY: build
@@ -115,45 +123,63 @@ checklicense:
 
 .PHONY: generate-operator-extension
 generate-operator-extension:
-	$(GO_TOOL) extension-generator \
-		--name gardener-extension-example \
+	@$(GO_TOOL) extension-generator \
+		--name $(EXTENSION_NAME) \
 		--component-category extension \
 		--provider-type example \
-		--destination $(SRC_ROOT)/examples/kustomize/extension/base/extension.yaml \
+		--destination $(SRC_ROOT)/examples/operator-extension/base/extension.yaml \
 		--extension-oci-repository $(IMAGE):$(IMAGE_TAG)
-	$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/kustomize/extension > $(SRC_ROOT)/examples/operator-extension.yaml
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension
 
 .PHONY: check-helm
 check-helm:
 	@$(GO_TOOL) helm lint $(SRC_ROOT)/charts
 	@$(GO_TOOL) helm template $(SRC_ROOT)/charts | \
 		$(GO_TOOL) kubeconform \
-			-strict \
-			-verbose \
-			-summary \
-			-output pretty \
-			-schema-location default \
+			$(KUBECONFORM_OPTS) \
 			-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
 .PHONY: check-examples
 check-examples:
+	@echo "Checking example resources ..."
 	@$(GO_TOOL) kubeconform \
-		-skip Kustomization \
-		-strict \
-		-verbose \
-		-summary \
-		-output pretty \
-		-schema-location default \
+		$(KUBECONFORM_OPTS) \
 		-schema-location "$(SRC_ROOT)/test/schemas/{{.Group}}/{{.ResourceAPIVersion}}/{{.ResourceKind}}.json" \
 		./examples
+	@echo "Checking operator extension resource ..."
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
+		$(GO_TOOL) kubeconform \
+			$(KUBECONFORM_OPTS) \
+			-schema-location "$(SRC_ROOT)/test/schemas/{{.Group}}/{{.ResourceAPIVersion}}/{{.ResourceKind}}.json"
 
 .PHONY: kind-load-image
 kind-load-image:
 	@$(MAKE) docker-build
 	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(IMAGE_TAG)
 
-.PHONY: helm-load-oci-chart
-helm-load-oci-chart:
+.PHONY: helm-load-chart
+helm-load-chart:
 	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(EXTENSION_VERSION)
 	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
 	@rm -f $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz
+
+.PHONY: update-version-tags
+update-version-tags:
+	@env version=$(EXTENSION_VERSION) \
+		$(GO_TOOL) yq -i '.version = env(version)' $(SRC_ROOT)/charts/Chart.yaml
+	@env image=$(IMAGE) tag=$(IMAGE_TAG) \
+		$(GO_TOOL) yq -i '(.image.repository = env(image)) | (.image.tag = env(tag))' $(SRC_ROOT)/charts/values.yaml
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(EXTENSION_VERSION) \
+		$(GO_TOOL) yq -i '.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/dev-setup/controllerdeployment.yaml
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(EXTENSION_VERSION) \
+		$(GO_TOOL) yq -i '.spec.deployment.extension.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
+
+.PHONY: deploy
+deploy: update-version-tags kind-load-image helm-load-chart
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
+		kubectl apply -f -
+
+.PHONY: undeploy
+undeploy:
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
+		kubectl delete --ignore-not-found=true -f -
