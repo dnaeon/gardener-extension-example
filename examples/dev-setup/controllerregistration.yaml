@@ -1,0 +1,21 @@
+---
+apiVersion: core.gardener.cloud/v1beta1
+kind: ControllerRegistration
+metadata:
+  name: gardener-extension-example
+  annotations:
+    security.gardener.cloud/pod-security-enforce: baseline
+spec:
+  deployment:
+    deploymentRefs:
+    - name: gardener-extension-example
+  resources:
+  - kind: Extension
+    type: example
+    workerlessSupported: true
+    clusterCompatibility:
+    - shoot
+    lifecycle:
+      reconcile: BeforeKubeAPIServer
+      delete: AfterKubeAPIServer
+      migrate: AfterKubeAPIServer
