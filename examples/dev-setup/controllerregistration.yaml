@@ -7,6 +7,7 @@ metadata:
     security.gardener.cloud/pod-security-enforce: baseline
 spec:
   deployment:
+    policy: OnDemand
     deploymentRefs:
     - name: gardener-extension-example
   resources:
