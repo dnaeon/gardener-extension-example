@@ -163,7 +163,7 @@ var _ = Describe("Actuator", Ordered, func() {
 	It("should fail to reconcile when no cluster exists", func() {
 		// Change namespace of the extension resource, so that a
 		// non-existing cluster is looked up.
-		extResource.ObjectMeta.Namespace = "non-existing-namespace"
+		extResource.Namespace = "non-existing-namespace"
 
 		act, err := actuator.New(actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
@@ -185,7 +185,7 @@ var _ = Describe("Actuator", Ordered, func() {
 
 	It("should succeed on Reconcile", func() {
 		// Ensure we have valid provider config
-		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+		extResource.Spec.ProviderConfig = &runtime.RawExtension{
 			Raw: providerConfigData,
 		}
 
@@ -217,7 +217,7 @@ var _ = Describe("Actuator", Ordered, func() {
 
 	It("should succeed on Restore", func() {
 		// Ensure we have valid provider config
-		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+		extResource.Spec.ProviderConfig = &runtime.RawExtension{
 			Raw: providerConfigData,
 		}
 
@@ -231,7 +231,7 @@ var _ = Describe("Actuator", Ordered, func() {
 
 	It("should succeed on Migrate", func() {
 		// Ensure we have valid provider config
-		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+		extResource.Spec.ProviderConfig = &runtime.RawExtension{
 			Raw: providerConfigData,
 		}
 

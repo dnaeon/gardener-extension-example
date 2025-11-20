@@ -75,7 +75,7 @@ $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 		./cmd/extension
 .PHONY: goimports-reviser
 goimports-reviser:
-	$(GO_TOOL) goimports-reviser -set-exit-status -rm-unused ./...
+	@$(GO_TOOL) goimports-reviser -set-exit-status -rm-unused ./...
 
 .PHONY: lint
 lint:
