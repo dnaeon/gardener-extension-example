@@ -30,6 +30,8 @@ linters:
     revive:
       enable-all-rules: true
       rules:
+        - name: struct-tag
+          arguments: ["json,inline", "bson,outline,gnu"]
         - name: add-constant
           disabled: true
         - name: cognitive-complexity

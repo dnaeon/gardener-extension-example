@@ -75,7 +75,7 @@ goimports-reviser:
 
 .PHONY: lint
 lint:
-	$(GO_TOOL) golangci-lint run --config=$(SRC_ROOT)/.golangci.yaml ./...
+	@$(GO_TOOL) golangci-lint run --config=$(SRC_ROOT)/.golangci.yaml ./...
 
 $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 	$(GOCMD) build \
@@ -92,8 +92,8 @@ run: $(BINARY)
 
 .PHONY: get
 get:
-	$(GOCMD) mod download
-	$(GOCMD) mod tidy
+	@$(GOCMD) mod download
+	@$(GOCMD) mod tidy
 
 .PHONY: test
 test:
