@@ -185,6 +185,11 @@ func WithAddToScheme(f func(s *runtime.Scheme) error) Option {
 	return opt
 }
 
+// WithInstallScheme is an [Option], which is an alias for [WithAddToScheme].
+func WithInstallScheme(f func(s *runtime.Scheme) error) Option {
+	return WithAddToScheme(f)
+}
+
 // WithMetricsOptions is an [Option], which configures the [manager.Manager]
 // with the given [metricsserver.Options].
 func WithMetricsOptions(opts metricsserver.Options) Option {

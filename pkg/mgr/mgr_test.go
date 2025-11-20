@@ -49,7 +49,7 @@ var _ = Describe("Manager", Ordered, func() {
 		opts := []mgr.Option{
 			mgr.WithConfig(cfg),
 			mgr.WithScheme(runtime.NewScheme()),
-			mgr.WithAddToScheme(corev1.AddToScheme),
+			mgr.WithInstallScheme(corev1.AddToScheme),
 			mgr.WithMetricsOptions(metricsserver.Options{SecureServing: true}),
 			mgr.WithMetricsAddress(":9090"),
 			mgr.WithExtraMetricsHandler("/test-handler", extraHandler),
