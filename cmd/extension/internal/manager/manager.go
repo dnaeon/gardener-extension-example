@@ -26,6 +26,7 @@ import (
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"gardener-extension-example/pkg/actuator"
+	configv1alpha1 "gardener-extension-example/pkg/apis/config/v1alpha1"
 	"gardener-extension-example/pkg/controller"
 	"gardener-extension-example/pkg/heartbeat"
 	"gardener-extension-example/pkg/mgr"
@@ -69,6 +70,7 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		mgr.WithContext(ctx),
 		mgr.WithAddToScheme(clientgoscheme.AddToScheme),
 		mgr.WithAddToScheme(extensionscontroller.AddToScheme),
+		mgr.WithAddToScheme(configv1alpha1.Install),
 		mgr.WithMetricsAddress(f.metricsBindAddr),
 		mgr.WithHealthProbeAddress(f.healthProbeBindAddr),
 		mgr.WithLeaderElection(f.leaderElection),

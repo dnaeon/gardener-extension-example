@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// TODO: command to generate the controller-registration manifest
-
 package main
 
 import (
