@@ -26,13 +26,11 @@ ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
 endif
 
-# Name and tag for the extension image
+# Name for the extension image
 IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
-IMAGE_TAG ?= $(EFFECTIVE_VERSION)
 
 # Name and version of the Gardener extension.
 EXTENSION_NAME ?= gardener-extension-example
-EXTENSION_VERSION ?= $(EFFECTIVE_VERSION)
 
 # Registry used for local development
 LOCAL_REGISTRY ?= garden.local.gardener.cloud:5001
@@ -81,7 +79,7 @@ lint:
 $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 	$(GOCMD) build \
 		-o $(LOCAL_BIN)/ \
-		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${EFFECTIVE_VERSION}'" \
+		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${VERSION}'" \
 		./cmd/extension
 
 .PHONY: build
@@ -109,7 +107,7 @@ docker-build:
 		--build-arg VERSION=$(VERSION) \
 		--build-arg REVISION=$(REVISION) \
 		-t $(IMAGE):$(VERSION) \
-		-t $(IMAGE):$(IMAGE_TAG) \
+		-t $(IMAGE):$(EFFECTIVE_VERSION) \
 		-t $(IMAGE):latest .
 
 .PHONY: update-tools
@@ -142,7 +140,7 @@ generate-operator-extension:
 		--component-category extension \
 		--provider-type example \
 		--destination $(SRC_ROOT)/examples/operator-extension/base/extension.yaml \
-		--extension-oci-repository $(IMAGE):$(IMAGE_TAG)
+		--extension-oci-repository $(IMAGE):$(VERSION)
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension
 
 .PHONY: check-helm
@@ -169,23 +167,25 @@ check-examples:
 .PHONY: kind-load-image
 kind-load-image:
 	@$(MAKE) docker-build
-	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(IMAGE_TAG)
+	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(VERSION)
+	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(EFFECTIVE_VERSION)
+	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):latest
 
 .PHONY: helm-load-chart
 helm-load-chart:
-	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(EXTENSION_VERSION)
-	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
-	@rm -f $(EXTENSION_NAME)-$(EXTENSION_VERSION).tgz
+	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(VERSION)
+	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
+	@rm -f $(EXTENSION_NAME)-$(VERSION).tgz
 
 .PHONY: update-version-tags
 update-version-tags:
-	@env version=$(EXTENSION_VERSION) \
+	@env version=$(VERSION) \
 		$(GO_TOOL) yq -i '.version = env(version)' $(SRC_ROOT)/charts/Chart.yaml
-	@env image=$(IMAGE) tag=$(IMAGE_TAG) \
+	@env image=$(IMAGE) tag=$(VERSION) \
 		$(GO_TOOL) yq -i '(.image.repository = env(image)) | (.image.tag = env(tag))' $(SRC_ROOT)/charts/values.yaml
-	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(EXTENSION_VERSION) \
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(VERSION) \
 		$(GO_TOOL) yq -i '.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/dev-setup/controllerdeployment.yaml
-	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(EXTENSION_VERSION) \
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(VERSION) \
 		$(GO_TOOL) yq -i '.spec.deployment.extension.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
 
 .PHONY: deploy
