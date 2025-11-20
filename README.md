@@ -103,14 +103,15 @@ make helm-load-chart
 
 In the [./examples/dev-setup](./examples/dev-setup) directory you can find
 [kustomize](https://kustomize.io/]) resources, which can be used to create the
-`ControllerDeployment` and `ControllerRegistration` resources. For more
-information about `ControllerDeployment` and `ControllerRegistration` resources,
-please make sure to check the [Registering Extension
+`ControllerDeployment` and `ControllerRegistration` resources.
+
+For more information about `ControllerDeployment` and `ControllerRegistration`
+resources, please make sure to check the [Registering Extension
 Controllers](https://gardener.cloud/docs/gardener/extensions/registration/)
 documentation.
 
-The `deploy` target takes care of deploying your extension locally. It does the
-following.
+The `deploy` target takes care of deploying your extension in a local Gardener
+environment. It does the following.
 
 1. Builds a Docker image of the extension
 2. Loads the image into the `kind` cluster nodes
@@ -134,7 +135,7 @@ controllerdeployment.core.gardener.cloud/gardener-extension-example   40s
 ```
 
 Finally, we can create an example shoot with our extension enabled. The
-[./examples/shoot.yaml](./examples/shoot.yaml) provides a ready-to-use shoot
+[examples/shoot.yaml](./examples/shoot.yaml) file provides a ready-to-use shoot
 manifest with the extension enabled and configured.
 
 ``` shell
@@ -169,10 +170,6 @@ kubectl --namespace shoot--local--local annotate extensions example gardener.clo
 ```
 
 # Tests
-
-Tests are using
-[envtest](https://pkg.go.dev/sigs.k8s.io/controller-runtime/pkg/envtest) for
-running a local control-plane.
 
 In order to run the tests use the command below:
 
