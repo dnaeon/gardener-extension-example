@@ -24,6 +24,21 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o bi
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot
+
+# Args and labels
+ARG BUILD_DATE
+ARG VERSION
+ARG REVISION
+
+LABEL org.opencontainers.image.title="Example Gardener Extension"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.description="An example Gardener extension"
+LABEL org.opencontainers.image.source="https://github.com/dnaeon/gardener-extension-example"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${REVISION}"
+LABEL org.opencontainers.image.licenses="Apache-2.0"
+LABEL org.opencontainers.image.authors="@gardener/gardener-extension-example-maintainers"
+
 WORKDIR /
 COPY --from=builder /workspace/bin/extension /usr/local/bin/extension
 USER 65532:65532
