@@ -20,7 +20,8 @@ LOCAL_BIN ?= $(SRC_ROOT)/bin
 BINARY    ?= $(LOCAL_BIN)/extension
 
 VERSION := $(shell cat VERSION)
-EFFECTIVE_VERSION ?= $(VERSION)-$(shell git rev-parse --short HEAD)
+REVISION := $(shell git rev-parse --short HEAD)
+EFFECTIVE_VERSION := $(VERSION)-$(REVISION)
 ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 	EFFECTIVE_VERSION := $(EFFECTIVE_VERSION)-dirty
 endif
@@ -103,7 +104,13 @@ test:
 
 .PHONY: docker-build
 docker-build:
-	docker build -t $(IMAGE):$(IMAGE_TAG) -t $(IMAGE):latest .
+	@docker build \
+		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg REVISION=$(REVISION) \
+		-t $(IMAGE):$(VERSION) \
+		-t $(IMAGE):$(IMAGE_TAG) \
+		-t $(IMAGE):latest .
 
 .PHONY: update-tools
 update-tools:
