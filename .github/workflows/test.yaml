@@ -45,4 +45,4 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: false
-          tags: dnaeon/gardener-extension-example:latest
+          tags: gardener-extension-example:latest
