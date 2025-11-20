@@ -122,6 +122,12 @@ checklicense:
 		exit 1; \
 	}
 
+.PHONY: generate
+generate:
+	@$(GO_TOOL) controller-gen object paths=./pkg/apis/...
+	@$(GO_TOOL) defaulter-gen --output-file zz_generated.defaults.go ./pkg/apis/...
+	@$(GO_TOOL) register-gen --output-file zz_generated.register.go ./pkg/apis/...
+
 .PHONY: generate-operator-extension
 generate-operator-extension:
 	@$(GO_TOOL) extension-generator \
@@ -176,7 +182,7 @@ update-version-tags:
 		$(GO_TOOL) yq -i '.spec.deployment.extension.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
 
 .PHONY: deploy
-deploy: update-version-tags kind-load-image helm-load-chart
+deploy: generate update-version-tags kind-load-image helm-load-chart
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
 		kubectl apply -f -
 
