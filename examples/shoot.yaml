@@ -8,8 +8,12 @@ metadata:
     authentication.gardener.cloud/issuer: "managed"
 spec:
   extensions:
-    - type: gardener-extension-example
-      providerConfig: {}
+    - type: example
+      providerConfig:
+        apiVersion: example.extensions.gardener.cloud/v1alpha1
+        kind: ExampleConfig
+        spec:
+          foo: bar
   cloudProfile:
     name: local
     kind: CloudProfile
