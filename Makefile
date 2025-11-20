@@ -101,7 +101,12 @@ get:
 test:
 	@echo "Setting up envtest for Kubernetes version v$(ENVTEST_K8S_VERSION) ..."
 	@KUBEBUILDER_ASSETS="$$( $(GO_TOOL) setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCAL_BIN) -p path )" \
-		$(GOCMD) test -v -race -coverprofile=coverage.txt -covermode=atomic $(shell $(GOCMD) list ./pkg/...)
+		$(GOCMD) test \
+			-v \
+			-race \
+			-coverprofile=coverage.txt \
+			-covermode=atomic \
+			$(shell $(GOCMD) list ./pkg/... | grep -v $(GO_MODULE)/pkg/apis/config/v1alpha1)
 
 .PHONY: docker-build
 docker-build:

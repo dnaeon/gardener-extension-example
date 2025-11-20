@@ -20,13 +20,24 @@ import (
 	"k8s.io/utils/ptr"
 
 	"gardener-extension-example/pkg/actuator"
+	configv1alpha1 "gardener-extension-example/pkg/apis/config/v1alpha1"
 )
 
 var _ = Describe("Actuator", Ordered, func() {
 	var (
-		decoder      = serializer.NewCodecFactory(scheme.Scheme, serializer.EnableStrict).UniversalDecoder()
-		featureGates = make(map[featuregate.Feature]bool)
-		actuatorOpts []actuator.Option
+		// Contain the serialized cloud profile, seed and shoot and provider config
+		providerConfigData, cloudProfileData, seedData, shootData []byte
+
+		extResource    *extensionsv1alpha1.Extension
+		cluster        *extensionsv1alpha1.Cluster
+		decoder        = serializer.NewCodecFactory(scheme.Scheme, serializer.EnableStrict).UniversalDecoder()
+		featureGates   = make(map[featuregate.Feature]bool)
+		actuatorOpts   []actuator.Option
+		providerConfig = configv1alpha1.ExampleConfig{
+			Spec: configv1alpha1.ExampleConfigSpec{
+				Foo: "bar",
+			},
+		}
 
 		projectNamespace = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -36,18 +47,6 @@ var _ = Describe("Actuator", Ordered, func() {
 		shootNamespace = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "shoot--local--local",
-			},
-		}
-		extResource = &extensionsv1alpha1.Extension{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "example",
-				Namespace: shootNamespace.Name,
-			},
-			Spec: extensionsv1alpha1.ExtensionSpec{
-				DefaultSpec: extensionsv1alpha1.DefaultSpec{
-					Type:  actuator.ExtensionType,
-					Class: ptr.To(extensionsv1alpha1.ExtensionClassShoot),
-				},
 			},
 		}
 		cloudProfile = &corev1beta1.CloudProfile{
@@ -96,6 +95,58 @@ var _ = Describe("Actuator", Ordered, func() {
 			actuator.WithDecoder(decoder),
 			actuator.WithGardenletFeatures(featureGates),
 		}
+
+		// Serialize our test objects, so we can later re-use them.
+		var err error
+		cloudProfileData, err = json.Marshal(cloudProfile)
+		Expect(err).NotTo(HaveOccurred())
+		seedData, err = json.Marshal(seed)
+		Expect(err).NotTo(HaveOccurred())
+		shootData, err = json.Marshal(shoot)
+		Expect(err).NotTo(HaveOccurred())
+		providerConfigData, err = json.Marshal(providerConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(k8sClient.Create(ctx, projectNamespace)).To(Succeed())
+		Expect(k8sClient.Create(ctx, shootNamespace)).To(Succeed())
+	})
+
+	BeforeEach(func() {
+		extResource = &extensionsv1alpha1.Extension{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "example",
+				Namespace: shootNamespace.Name,
+			},
+			Spec: extensionsv1alpha1.ExtensionSpec{
+				DefaultSpec: extensionsv1alpha1.DefaultSpec{
+					Type:  actuator.ExtensionType,
+					Class: ptr.To(extensionsv1alpha1.ExtensionClassShoot),
+				},
+			},
+		}
+
+		cluster = &extensionsv1alpha1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: shootNamespace.Name,
+			},
+			Spec: extensionsv1alpha1.ClusterSpec{
+				CloudProfile: runtime.RawExtension{
+					Raw: cloudProfileData,
+				},
+				Seed: runtime.RawExtension{
+					Raw: seedData,
+				},
+				Shoot: runtime.RawExtension{
+					Raw: shootData,
+				},
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
+	})
+
+	AfterEach(func() {
+		Expect(k8sClient.Delete(ctx, cluster)).To(Succeed())
 	})
 
 	It("should successfully create an actuator", func() {
@@ -110,38 +161,33 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should fail to reconcile when no cluster exists", func() {
+		// Change namespace of the extension resource, so that a
+		// non-existing cluster is looked up.
+		extResource.ObjectMeta.Namespace = "non-existing-namespace"
+
 		act, err := actuator.New(actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
-		Expect(act.Reconcile(ctx, logger, extResource)).Error().Should(HaveOccurred())
+		err = act.Reconcile(ctx, logger, extResource)
+		Expect(err).Should(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring("failed to get cluster")))
+	})
+
+	It("should fail to reconcile without provider config", func() {
+		act, err := actuator.New(actuatorOpts...)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(act).NotTo(BeNil())
+
+		err = act.Reconcile(ctx, logger, extResource)
+		Expect(err).Should(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring("no provider config specified")))
 	})
 
 	It("should succeed on Reconcile", func() {
-		cpData, err := json.Marshal(cloudProfile)
-		Expect(err).NotTo(HaveOccurred())
-		seedData, err := json.Marshal(seed)
-		Expect(err).NotTo(HaveOccurred())
-		shootData, err := json.Marshal(shoot)
-		Expect(err).NotTo(HaveOccurred())
-
-		cluster := &extensionsv1alpha1.Cluster{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: shootNamespace.Name,
-			},
-			Spec: extensionsv1alpha1.ClusterSpec{
-				CloudProfile: runtime.RawExtension{
-					Raw: cpData,
-				},
-				Seed: runtime.RawExtension{
-					Raw: seedData,
-				},
-				Shoot: runtime.RawExtension{
-					Raw: shootData,
-				},
-			},
+		// Ensure we have valid provider config
+		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+			Raw: providerConfigData,
 		}
-		Expect(k8sClient.Create(ctx, shootNamespace)).To(Succeed())
-		Expect(k8sClient.Create(ctx, cluster)).To(Succeed())
 
 		act, err := actuator.New(actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
@@ -170,6 +216,11 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should succeed on Restore", func() {
+		// Ensure we have valid provider config
+		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+			Raw: providerConfigData,
+		}
+
 		act, err := actuator.New(actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
@@ -179,6 +230,11 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should succeed on Migrate", func() {
+		// Ensure we have valid provider config
+		extResource.Spec.DefaultSpec.ProviderConfig = &runtime.RawExtension{
+			Raw: providerConfigData,
+		}
+
 		act, err := actuator.New(actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
