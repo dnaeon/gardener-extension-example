@@ -27,6 +27,10 @@ jobs:
         run: |
           set -eu
           make checklicense
+      - name: Check for vulnerabilities
+        run: |
+          set -eu
+          make govulncheck
       - name: Run linter
         run: |
           set -eu

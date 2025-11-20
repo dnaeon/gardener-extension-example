@@ -68,6 +68,11 @@ ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
 $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
 
+$(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
+	$(GOCMD) build \
+		-o $(LOCAL_BIN)/ \
+		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${VERSION}'" \
+		./cmd/extension
 .PHONY: goimports-reviser
 goimports-reviser:
 	$(GO_TOOL) goimports-reviser -set-exit-status -rm-unused ./...
@@ -76,11 +81,9 @@ goimports-reviser:
 lint:
 	@$(GO_TOOL) golangci-lint run --config=$(SRC_ROOT)/.golangci.yaml ./...
 
-$(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
-	$(GOCMD) build \
-		-o $(LOCAL_BIN)/ \
-		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${VERSION}'" \
-		./cmd/extension
+.PHONY: govulncheck
+govulncheck:
+	@$(GO_TOOL) govulncheck -show verbose ./...
 
 .PHONY: build
 build: $(BINARY)
