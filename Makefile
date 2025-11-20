@@ -13,6 +13,7 @@ GOOS := $(shell $(GOCMD) env GOOS)
 GOARCH := $(shell $(GOCMD) env GOARCH)
 TOOLS_MOD_DIR := $(SRC_ROOT)/internal/tools
 TOOLS_MOD_FILE := $(TOOLS_MOD_DIR)/go.mod
+GO_MODULE := $(shell $(GOCMD) list -m -f '{{ .Path }}' )
 GO_TOOL := $(GOCMD) tool -modfile $(TOOLS_MOD_FILE)
 
 LOCAL_BIN ?= $(SRC_ROOT)/bin
@@ -79,7 +80,7 @@ lint:
 $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 	$(GOCMD) build \
 		-o $(LOCAL_BIN)/ \
-		-ldflags="-X '$(EXTENSION_NAME)/pkg/version.Version=${EFFECTIVE_VERSION}'" \
+		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${EFFECTIVE_VERSION}'" \
 		./cmd/extension
 
 .PHONY: build
