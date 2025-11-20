@@ -6,6 +6,7 @@ package actuator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/component-base/featuregate"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	configv1alpha1 "gardener-extension-example/pkg/apis/config/v1alpha1"
 	"gardener-extension-example/pkg/metrics"
 )
 
@@ -27,7 +29,7 @@ const (
 	// actuator reconciles.
 	ExtensionType = "example"
 	// FinalizerSuffix is the finalizer suffix used by the actuator
-	FinalizerSuffix = "extension-gardener-example"
+	FinalizerSuffix = "gardener-extension-example"
 )
 
 // Actuator is an implementation of [extension.Actuator].
@@ -183,23 +185,22 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 		return nil
 	}
 
-	// TODO(user): if the extension requires provider config to be specified
-	// as part of the shoot spec, then uncomment the next lines.
-	//
-	// if ex.Spec.ProviderConfig == nil {
-	// 	return errors.New("no provider config specified")
-	// }
+	// TODO(user): Remove the following check, if your extension does not
+	// require any configuration.
+	if ex.Spec.ProviderConfig == nil {
+		return errors.New("no provider config specified")
+	}
 
-	// Decode provider spec configuration into our known config type
-	// var foo myProviderConfigType
-	// if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &foo); err != nil {
-	// 	return errors.New("invalid provider spec configuration")
-	// }
+	// Decode provider spec configuration into our known config type.
+	var config configv1alpha1.ExampleConfig
+	if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &config); err != nil {
+		return errors.New("invalid provider spec configuration")
+	}
 
-	// TODO(user): validate the decoded provider spec configuration.
-	// if foo.bar == "" {
-	// 	// Validate and report errors
-	// }
+	// TODO(user): validate any other config settings for your extension.
+	if config.Spec.Foo == "" {
+		return errors.New("foo must not be empty")
+	}
 
 	return nil
 }
