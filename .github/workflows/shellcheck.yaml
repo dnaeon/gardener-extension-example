@@ -1,11 +1,16 @@
+name: Shellcheck
+
 on:
   push:
     branches-ignore:
       - 'renovate/**'
       - 'dependabot/**'
-  pull-request:
 
-permissions: read-all
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   shellcheck:
