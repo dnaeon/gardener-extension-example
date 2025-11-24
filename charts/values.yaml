@@ -16,7 +16,7 @@ extension:
     # Logging level. Valid values are `info', `debug' and `error'.
     level: info
     # Logging format. Valid values are `json' and `text'.
-    format: text
+    format: json
   # Controller manager settings
   manager:
     # Set to true in order to ignore operation annotation
@@ -48,7 +48,7 @@ extension:
   # Leader election settings
   leader_election:
     enabled: true
-    election_id: gardener-extension-example
+    election_id: gardener-extension-example-leader-election
 # Extra values provided by gardenlet during extension deployment.
 #
 # See the link below for more details.
