@@ -183,7 +183,7 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:        "leader-election-id",
 				Usage:       "the leader election id to use, if leader election is enabled",
-				Value:       "gardener-extension-example",
+				Value:       "gardener-extension-example-leader-election",
 				Sources:     cli.EnvVars("LEADER_ELECTION_ID"),
 				Destination: &flags.leaderElectionID,
 			},
