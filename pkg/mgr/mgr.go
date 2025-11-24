@@ -32,6 +32,7 @@ import (
 type mgr struct {
 	scheme                  *runtime.Scheme
 	addToSchemes            []func(s *runtime.Scheme) error
+	installSchemes          []func(s *runtime.Scheme)
 	restConfig              *rest.Config
 	metricsServerOpts       metricsserver.Options
 	healthProbeAddr         string
@@ -57,6 +58,7 @@ func New(opts ...Option) (manager.Manager, error) {
 	m := &mgr{
 		scheme:            runtime.NewScheme(),
 		addToSchemes:      make([]func(s *runtime.Scheme) error, 0),
+		installSchemes:    make([]func(s *runtime.Scheme), 0),
 		metricsServerOpts: metricsserver.Options{},
 		baseCtxFunc:       context.Background,
 		controllerOpts: controllerconfig.Controller{
@@ -80,6 +82,10 @@ func New(opts ...Option) (manager.Manager, error) {
 		if err := addToScheme(m.scheme); err != nil {
 			return nil, fmt.Errorf("failed to add scheme: %w", err)
 		}
+	}
+
+	for _, installScheme := range m.installSchemes {
+		installScheme(m.scheme)
 	}
 
 	// Get rest.Config, unless we have one already
@@ -185,9 +191,16 @@ func WithAddToScheme(f func(s *runtime.Scheme) error) Option {
 	return opt
 }
 
-// WithInstallScheme is an [Option], which is an alias for [WithAddToScheme].
-func WithInstallScheme(f func(s *runtime.Scheme) error) Option {
-	return WithAddToScheme(f)
+// WithInstallScheme is an [Option], which registers an API group and adds types
+// to the scheme.
+func WithInstallScheme(f func(s *runtime.Scheme)) Option {
+	opt := func(m *mgr) error {
+		m.installSchemes = append(m.installSchemes, f)
+
+		return nil
+	}
+
+	return opt
 }
 
 // WithMetricsOptions is an [Option], which configures the [manager.Manager]

@@ -46,10 +46,15 @@ var _ = Describe("Manager", Ordered, func() {
 			return nil
 		})
 
+		installSchemeFunc := func(s *runtime.Scheme) {
+			// A dummy install scheme function
+		}
+
 		opts := []mgr.Option{
 			mgr.WithConfig(cfg),
 			mgr.WithScheme(runtime.NewScheme()),
-			mgr.WithInstallScheme(corev1.AddToScheme),
+			mgr.WithAddToScheme(corev1.AddToScheme),
+			mgr.WithInstallScheme(installSchemeFunc),
 			mgr.WithMetricsOptions(metricsserver.Options{SecureServing: true}),
 			mgr.WithMetricsAddress(":9090"),
 			mgr.WithExtraMetricsHandler("/test-handler", extraHandler),
