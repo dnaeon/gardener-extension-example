@@ -190,7 +190,25 @@ run the following command.
 ``` shell
 make check-examples
 ```
+<!-- BOOTSTRAP_DELETE_START -->
+# Bootstrapping a new project
 
+You can use the [hack/bootstrap.sh](./hack/bootstrap.sh) script in order to
+bootstrap a new Gardener Extension project using this repo.
+
+First, edit the [hack/bootstrap-vars.env](./hack/bootstrap-vars.env) file and
+set the extension name, extension resource type and description of your new
+project.
+
+Then you can bootstrap a new project using the following command.
+
+``` shell
+hack/bootstrap.sh generate /path/to/new/project
+```
+
+[./images/bootstrap-demo.gif](./images/bootstrap-demo.gif)
+
+<!-- BOOTSTRAP_DELETE_END -->
 # Documentation
 
 Make sure to check the following documents for more information about Gardener
