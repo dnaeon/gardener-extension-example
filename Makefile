@@ -102,6 +102,11 @@ get:
 	@$(GOCMD) mod download
 	@$(GOCMD) mod tidy
 
+.PHONY: gotidy
+gotidy:
+	@$(GOCMD) mod tidy
+	@cd $(TOOLS_MOD_DIR) && $(GOCMD) mod tidy
+
 .PHONY: test
 test:
 	@echo "Setting up envtest for Kubernetes version v$(ENVTEST_K8S_VERSION) ..."
