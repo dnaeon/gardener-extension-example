@@ -110,7 +110,7 @@ function _bootstrap_project {
         --exclude 'bin/*' \
         --exclude bootstrap.sh \
         --exclude coverage.txt \
-        --exclude 'zz_generated.*.go' \
+        --exclude 'generated.*.go' \
         --exclude 'hack/bootstrap.sh' \
         --exclude 'hack/bootstrap-vars.env' \
         --exclude 'images/*' \
