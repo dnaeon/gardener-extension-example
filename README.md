@@ -206,7 +206,7 @@ Then you can bootstrap a new project using the following command.
 hack/bootstrap.sh generate /path/to/new/project
 ```
 
-[./images/bootstrap-demo.gif](./images/bootstrap-demo.gif)
+![bootstrap demo](./images/bootstrap-demo.gif)
 
 <!-- BOOTSTRAP_DELETE_END -->
 # Documentation
