@@ -6,16 +6,19 @@ metadata:
   annotations:
     security.gardener.cloud/pod-security-enforce: baseline
 spec:
+  # https://gardener.cloud/docs/gardener/extensions/registration/#deployment-configuration-options
   deployment:
     policy: OnDemand
     deploymentRefs:
     - name: gardener-extension-example
+  # https://gardener.cloud/docs/gardener/extensions/registration/#extension-resource-configurations
   resources:
   - kind: Extension
     type: example
     workerlessSupported: true
     clusterCompatibility:
     - shoot
+    # https://gardener.cloud/docs/gardener/extensions/registration/#extension-lifecycle
     lifecycle:
       reconcile: BeforeKubeAPIServer
       delete: AfterKubeAPIServer
