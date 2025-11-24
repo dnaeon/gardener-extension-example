@@ -37,6 +37,11 @@ LOCAL_REGISTRY ?= garden.local.gardener.cloud:5001
 # Name of the kind cluster for local development
 KIND_CLUSTER ?= gardener-local
 
+# Kubernetes code-generator tools
+#
+# https://github.com/kubernetes/code-generator
+K8S_GEN_TOOLS := deepcopy-gen defaulter-gen register-gen conversion-gen
+
 # ENVTEST_K8S_VERSION configures the version of Kubernetes, which will be
 # installed by setup-envtest.
 #
@@ -137,9 +142,7 @@ checklicense:
 
 .PHONY: generate
 generate:
-	@$(GO_TOOL) controller-gen object paths=./pkg/apis/...
-	@$(GO_TOOL) defaulter-gen --output-file zz_generated.defaults.go ./pkg/apis/...
-	@$(GO_TOOL) register-gen --output-file zz_generated.register.go ./pkg/apis/...
+	$(foreach gen_tool,$(K8S_GEN_TOOLS),$(shell $(GO_TOOL) $(gen_tool) ./pkg/apis/...))
 
 .PHONY: generate-operator-extension
 generate-operator-extension:
