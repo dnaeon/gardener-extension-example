@@ -1,4 +1,4 @@
-name: Test
+name: build-and-test
 on:
   push:
     branches-ignore:
@@ -23,6 +23,16 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
+      - name: Check Go module dependencies
+        run: |
+          set -eu
+          make gotidy
+          git diff -s --exit-code || { echo 'Go module dependencies are of date, please run "make gotidy"' && exit 1 }
+      - name: Check generate
+        run: |
+          set -eu
+          make generate
+          git diff -s --exit-code || { echo 'Generated files are of date, please run "make generate"' && exit 1 }
       - name: Check license headers
         run: |
           set -eu
