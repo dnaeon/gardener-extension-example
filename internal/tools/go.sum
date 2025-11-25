@@ -506,8 +506,8 @@ github.com/mgechev/revive v1.12.0 h1:Q+/kkbbwerrVYPv9d9efaPGmAO/NsxwW/nE6ahpQaCU
 github.com/mgechev/revive v1.12.0/go.mod h1:VXsY2LsTigk8XU9BpZauVLjVrhICMOV3k1lpB3CXrp8=
 github.com/miekg/dns v1.1.68 h1:jsSRkNozw7G/mnmXULynzMNIsgY2dHC8LO6U6Ij2JEA=
 github.com/miekg/dns v1.1.68/go.mod h1:fujopn7TB3Pu3JM69XaawiU0wqjpL9/8xGop5UrTPps=
-github.com/mikefarah/yq/v4 v4.49.1 h1:eHiNue/Sp7Kk2IZZDhjLWWDjjN4TsShndF0z+OxI6QM=
-github.com/mikefarah/yq/v4 v4.49.1/go.mod h1:iHgYxHyqA6VqQfre+TocMnqnk7e2+pNzAHusH8y95Wk=
+github.com/mikefarah/yq/v4 v4.49.2 h1:GdMcAvlogQqV1IwW7ivoXjZBMVGA44L9X1yytzAkK2Y=
+github.com/mikefarah/yq/v4 v4.49.2/go.mod h1:iHgYxHyqA6VqQfre+TocMnqnk7e2+pNzAHusH8y95Wk=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=
