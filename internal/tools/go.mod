@@ -336,7 +336,7 @@ require (
 	mvdan.cc/unparam v0.0.0-20251027182757-5beb8c8f8f15 // indirect
 	oras.land/oras-go/v2 v2.6.0 // indirect
 	sigs.k8s.io/controller-runtime v0.22.4 // indirect
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20251123170635-9758f5c2ef14 // indirect
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20251125063837-7e0e84b83840 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.21.0 // indirect
 	sigs.k8s.io/kustomize/cmd/config v0.21.0 // indirect
