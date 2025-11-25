@@ -3,8 +3,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // +k8s:deepcopy-gen=package
-// +k8s:defaulter-gen=TypeMeta
-// +k8s:conversion-gen=gardener-extension-example/pkg/apis/config
 // +groupName=example.extensions.gardener.cloud
 
-package v1alpha1
+package config

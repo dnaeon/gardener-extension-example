@@ -18,7 +18,7 @@ import (
 	"k8s.io/component-base/featuregate"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	configv1alpha1 "gardener-extension-example/pkg/apis/config/v1alpha1"
+	"gardener-extension-example/pkg/apis/config"
 	"gardener-extension-example/pkg/metrics"
 )
 
@@ -192,7 +192,7 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 	}
 
 	// Decode provider spec configuration into our known config type.
-	var config configv1alpha1.ExampleConfig
+	var config config.ExampleConfig
 	if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &config); err != nil {
 		return errors.New("invalid provider spec configuration")
 	}

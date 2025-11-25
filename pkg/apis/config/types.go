@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package v1alpha1
+package config
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +11,7 @@ import (
 // ExampleConfigSpec defines the desired state of [ExampleConfig]
 type ExampleConfigSpec struct {
 	// Foo is foo
-	Foo string `json:"foo,omitzero"`
+	Foo string
 
 	// TODO(user): insert additional spec fields
 }
@@ -20,8 +20,8 @@ type ExampleConfigSpec struct {
 
 // ExampleConfig is the schema for the exampleconfigs API
 type ExampleConfig struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta
 
 	// Spec provides the extension configuration spec.
-	Spec ExampleConfigSpec `json:"spec,omitzero"`
+	Spec ExampleConfigSpec
 }

@@ -20,6 +20,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
+	configinstall "gardener-extension-example/pkg/apis/config/install"
 )
 
 var (
@@ -44,6 +46,7 @@ var _ = BeforeSuite(func() {
 
 	Expect(corev1beta1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(extensionscontroller.AddToScheme(scheme.Scheme)).To(Succeed())
+	configinstall.Install(scheme.Scheme)
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{

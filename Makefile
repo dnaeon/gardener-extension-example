@@ -116,7 +116,7 @@ test:
 			-race \
 			-coverprofile=coverage.txt \
 			-covermode=atomic \
-			$(shell $(GOCMD) list ./pkg/... | grep -v $(GO_MODULE)/pkg/apis/config/v1alpha1)
+			$(shell $(GOCMD) list ./pkg/... | grep -v $(GO_MODULE)/pkg/apis)
 
 .PHONY: docker-build
 docker-build:

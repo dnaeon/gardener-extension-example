@@ -20,7 +20,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"gardener-extension-example/pkg/actuator"
-	configv1alpha1 "gardener-extension-example/pkg/apis/config/v1alpha1"
+	"gardener-extension-example/pkg/apis/config"
 )
 
 var _ = Describe("Actuator", Ordered, func() {
@@ -28,13 +28,14 @@ var _ = Describe("Actuator", Ordered, func() {
 		// Contain the serialized cloud profile, seed and shoot and provider config
 		providerConfigData, cloudProfileData, seedData, shootData []byte
 
-		extResource    *extensionsv1alpha1.Extension
-		cluster        *extensionsv1alpha1.Cluster
-		decoder        = serializer.NewCodecFactory(scheme.Scheme, serializer.EnableStrict).UniversalDecoder()
+		extResource *extensionsv1alpha1.Extension
+		cluster     *extensionsv1alpha1.Cluster
+		decoder     = serializer.NewCodecFactory(scheme.Scheme, serializer.EnableStrict).UniversalDecoder()
+
 		featureGates   = make(map[featuregate.Feature]bool)
 		actuatorOpts   []actuator.Option
-		providerConfig = configv1alpha1.ExampleConfig{
-			Spec: configv1alpha1.ExampleConfigSpec{
+		providerConfig = config.ExampleConfig{
+			Spec: config.ExampleConfigSpec{
 				Foo: "bar",
 			},
 		}
