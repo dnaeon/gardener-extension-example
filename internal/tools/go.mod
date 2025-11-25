@@ -327,7 +327,7 @@ require (
 	k8s.io/client-go v0.34.1 // indirect
 	k8s.io/code-generator v0.34.2 // indirect
 	k8s.io/component-base v0.34.1 // indirect
-	k8s.io/gengo/v2 v2.0.0-20250820003526-c297c0c1eb9d // indirect
+	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	k8s.io/kubectl v0.34.1 // indirect
@@ -346,3 +346,8 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+// TODO: a fix until the following upstream issue is clarified.
+//
+// https://github.com/kubernetes/kubernetes/issues/135417
+replace k8s.io/code-generator => github.com/dnaeon/code-generator v0.34.2-fixed-defaulter-gen
