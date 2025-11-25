@@ -41,6 +41,7 @@ KIND_CLUSTER ?= gardener-local
 #
 # https://github.com/kubernetes/code-generator
 K8S_GEN_TOOLS := deepcopy-gen defaulter-gen register-gen conversion-gen
+K8S_GEN_TOOLS_LOG_LEVEL ?= 0
 
 # ENVTEST_K8S_VERSION configures the version of Kubernetes, which will be
 # installed by setup-envtest.
@@ -69,6 +70,17 @@ ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
 			-ignore "**/*.yaml" \
 			-ignore "**/*.yml" \
 			-ignore "**/Dockerfile"
+
+# Run a command.
+#
+# When used with `foreach' the result is concatenated, so make sure to preserve
+# the empty whitespace at the end of this function.
+#
+# https://www.gnu.org/software/make/manual/html_node/Foreach-Function.html
+define run-command
+$(1)
+
+endef
 
 $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
@@ -147,7 +159,8 @@ checklicense:
 
 .PHONY: generate
 generate:
-	$(foreach gen_tool,$(K8S_GEN_TOOLS),$(shell $(GO_TOOL) $(gen_tool) ./pkg/apis/...))
+	@echo "Running code-generator tools ..."
+	$(foreach gen_tool,$(K8S_GEN_TOOLS),$(call run-command,$(GO_TOOL) $(gen_tool) -v=$(K8S_GEN_TOOLS_LOG_LEVEL) ./pkg/apis/...))
 
 .PHONY: generate-operator-extension
 generate-operator-extension:
