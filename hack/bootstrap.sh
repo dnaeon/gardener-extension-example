@@ -203,7 +203,7 @@ function _bootstrap_project {
            -e "s|dnaeon/gardener-extension-example|${EXTENSION_NAME}|g" \
            {} \;
 
-  local _targets=(generate goimports-reviser check-helm check-examples)
+  local _targets=(gotidy generate goimports-reviser check-helm check-examples)
   for _target in "${_targets[@]}"; do
     _msg_info "Running 'make ${_target}' ..."
     make -C "${_dst_path}" "${_target}"
