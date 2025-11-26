@@ -126,7 +126,8 @@ function _bootstrap_project {
        -iname "*.go" \
        -exec sed -i'' \
          -e "s|groupName=example.extensions.gardener.cloud|groupName=${EXTENSION_TYPE}.extensions.gardener.cloud|g" \
-         -e "s|Usage:\s*:\"an example gardener extension\"|Usage: \"${EXTENSION_DESC}|g" \
+         -e "s|GroupName = \"example.extensions.gardener.cloud\"|GroupName = \"${EXTENSION_TYPE}.extensions.gardener.cloud\"|g" \
+         -e "s|Usage:\s*\"an example gardener extension\"|Usage: \"${EXTENSION_DESC}\"|g" \
          -e "s|Value:\s*\"gardener-extension-example\"|Value: \"${EXTENSION_NAME}\"|g" \
          -e "s|Name:\s*\"gardener-extension-example\"|Name: \"${EXTENSION_NAME}\"|g" \
          -e "s|Namespace = \"gardener_extension_example\"|Namespace = \"${_extension_name_lc}\"|g" \
@@ -142,8 +143,10 @@ function _bootstrap_project {
       -e "s|- type: example$|- type: ${EXTENSION_TYPE}|g" \
       -e "s|apiVersion: example.extensions.gardener.cloud/v1alpha1$|apiVersion: ${EXTENSION_TYPE}.extensions.gardener.cloud/v1alpha1|g" \
       -e "s|example   example   Succeeded   85m$|${EXTENSION_TYPE}   ${EXTENSION_TYPE}   Succeeded   85m|g" \
+      -e "s|example   example   Succeeded   2m37s|${EXTENSION_TYPE}   ${EXTENSION_TYPE}   Succeeded   2m37s|g" \
       -e "s|annotate extensions example gardener.cloud/operation=reconcile$|annotate extensions ${EXTENSION_TYPE} gardener.cloud/operation=reconcile|g" \
-      -e "s|Extension/example   40s$|Extension/${EXTENSION_TYPE}   40s|g" \
+      -e "s|Extension/example\s*40s$|Extension/${EXTENSION_TYPE}   40s|g" \
+      -e "s|Extension/example\s*3m50s|Extension/${EXTENSION_TYPE}  3m50s|g" \
       -e "s|repo provides the skeleton for an example Gardener extension.$|repo provides ${EXTENSION_DESC}.|g" \
       "${_dst_path}/README.md"
 
@@ -194,7 +197,10 @@ function _bootstrap_project {
        -and -not -path "${_dst_path}/CONTRIBUTING" \
        -and -not -path "${_dst_path}/VERSION" \
        -and -not -path "${_dst_path}/.golangci.yaml" \
+       -and -not -path "${_dst_path}/go.mod" \
        -and -not -path "${_dst_path}/go.sum" \
+       -and -not -path "${_dst_path}/internal/tools/go.mod" \
+       -and -not -path "${_dst_path}/internal/tools/go.sum" \
        -and -not -path "${_dst_path}/.github/ISSUE_TEMPLATE/*" \
        -exec \
          sed -i'' \
