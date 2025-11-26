@@ -192,13 +192,13 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 	}
 
 	// Decode provider spec configuration into our known config type.
-	var config config.ExampleConfig
-	if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &config); err != nil {
+	var cfg config.ExampleConfig
+	if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &cfg); err != nil {
 		return errors.New("invalid provider spec configuration")
 	}
 
 	// TODO(user): validate any other config settings for your extension.
-	if config.Spec.Foo == "" {
+	if cfg.Spec.Foo == "" {
 		return errors.New("foo must not be empty")
 	}
 
