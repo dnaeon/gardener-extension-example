@@ -27,7 +27,7 @@ ifneq ($(strip $(shell git status --porcelain 2>/dev/null)),)
 endif
 
 # Name for the extension image
-IMAGE     ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
+IMAGE ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/example
 
 # Name and version of the Gardener extension.
 EXTENSION_NAME ?= gardener-extension-example
@@ -75,6 +75,9 @@ ADDLICENSE_OPTS ?= -f $(HACK_DIR)/LICENSE_BOILERPLATE.txt \
 			-ignore "**/*.yml" \
 			-ignore "**/Dockerfile"
 
+# Path in which to generate the API reference docs
+API_REF_DOCS ?= $(SRC_ROOT)/docs/api-reference
+
 # Run a command.
 #
 # When used with `foreach' the result is concatenated, so make sure to preserve
@@ -105,6 +108,16 @@ lint:
 .PHONY: govulncheck
 govulncheck:
 	@$(GO_TOOL) govulncheck -show verbose ./...
+
+.PHONY: api-ref-docs
+api-ref-docs:
+	@mkdir -p $(API_REF_DOCS)
+	@$(GO_TOOL) crd-ref-docs \
+		--config $(SRC_ROOT)/api-ref-docs.yaml \
+		--output-mode group \
+		--output-path $(API_REF_DOCS) \
+		--renderer markdown \
+		--source-path $(SRC_ROOT)/pkg/apis
 
 .PHONY: build
 build: $(BINARY)
