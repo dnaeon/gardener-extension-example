@@ -119,7 +119,7 @@ following command.
 make helm-load-chart
 ```
 
-In the [./examples/dev-setup](./examples/dev-setup) directory you can find
+In the [examples/dev-setup](./examples/dev-setup) directory you can find
 [kustomize](https://kustomize.io/]) resources, which can be used to create the
 `ControllerDeployment` and `ControllerRegistration` resources.
 
@@ -161,9 +161,10 @@ kubectl apply -f examples/shoot.yaml
 ```
 
 Once we create the shoot cluster, `gardenlet` will start deploying our
-`gardener-extension-example`, since it is required by our shoot. Verify that the
-extension has been successfully installed by checking the corresponding
-`ControllerInstallation` resource.
+`gardener-extension-example`, since it is required by our shoot.
+
+Verify that the extension has been successfully installed by checking the
+corresponding `ControllerInstallation` resource.
 
 ``` shell
 $ kubectl get controllerinstallations.core.gardener.cloud
