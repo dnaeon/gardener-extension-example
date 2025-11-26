@@ -5,6 +5,7 @@
 
 #
 # Utility script for bootstrapping an extension skeleton
+#
 
 set -e
 
@@ -114,6 +115,7 @@ function _bootstrap_project {
         --exclude 'hack/bootstrap.sh' \
         --exclude 'hack/bootstrap-vars.env' \
         --exclude 'images/*' \
+        --exclude 'docs/api-reference/*' \
         "${_PROJECT_DIR}/" "${_dst_path}"
 
   _msg_info "Fixing Go modules and packages ..."
@@ -209,7 +211,7 @@ function _bootstrap_project {
            -e "s|dnaeon/gardener-extension-example|${EXTENSION_NAME}|g" \
            {} \;
 
-  local _targets=(gotidy generate goimports-reviser check-helm check-examples)
+  local _targets=(gotidy generate goimports-reviser check-helm check-examples api-ref-docs)
   for _target in "${_targets[@]}"; do
     _msg_info "Running 'make ${_target}' ..."
     make -C "${_dst_path}" "${_target}"
