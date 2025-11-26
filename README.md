@@ -19,7 +19,6 @@ The project repo uses the following code structure.
 | `pkg/apis`        | Extension API types, e.g. configuration spec, etc.                                       |
 | `pkg/actuator`    | Implementations for the Gardener Extension Actuator interfaces                           |
 | `pkg/controller`  | Utility wrappers for creating Kubernetes reconcilers for Gardener Actuators              |
-| `pkg/healthcheck` | Utility wrappers for creating healthcheck reconcilers for Gardener extensions            |
 | `pkg/heartbeat`   | Utility wrappers for creating heartbeat reconcilers for Gardener extensions              |
 | `pkg/metrics`     | Metrics emitted by the extension                                                         |
 | `pkg/mgr`         | Utility wrappers for creating `controller-runtime` managers using functional options API |
@@ -50,25 +49,6 @@ spec:
 
 # Development
 
-For local development of the `gardener-extension-example` it is recommended that
-you setup a development [Gardener](https://gardener.cloud/docs/gardener/local_setup/)
-environment.
-
-For more details on how to do that, please check the following documents.
-
-- [Gardener: Local setup requirements](https://gardener.cloud/docs/gardener/local_setup/)
-- [Gardener: Getting Started Locally](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/)
-
-Before you continue with the next steps, make sure that you configure your
-`KUBECONFIG` to point to the kubeconfig file created by Gardener for you. This
-file will be located in the
-`/path/to/gardener/example/gardener-local/kind/local/kubeconfig` path after
-creating a new local dev shoot cluster.
-
-``` shell
-export KUBECONFIG=/path/to/gardener/example/gardener-local/kind/local/kubeconfig
-```
-
 In order to build a binary of the extension, you can use the following command.
 
 ``` shell
@@ -82,6 +62,44 @@ command.
 
 ``` shell
 make docker-build
+```
+
+For local development of the `gardener-extension-example` it is recommended that
+you setup a [development Gardener environment](https://gardener.cloud/docs/gardener/local_setup/).
+
+Please refer to the next sections for more information about deploying and
+testing the extension in a Gardener development environment.
+
+## Development Environment without Gardener Operator
+
+The following documents describe how to create a Gardener development
+environment locally. Please make sure to read them in order to familiarize
+yourself with the setup, and also to install any prerequisites.
+
+- [Gardener: Local setup requirements](https://gardener.cloud/docs/gardener/local_setup/)
+- [Gardener: Getting Started Locally](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/)
+
+The steps from this section describe how to deploy and develop the extension
+against a local development environment, without the
+[Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/).
+
+In summary, these are the steps you need to follow in order to start a local
+development Gardener environment, however, please make sure that you read the
+documents above for additional details.
+
+``` shell
+make kind-up gardener-up
+```
+
+Before you continue with the next steps, make sure that you configure your
+`KUBECONFIG` to point to the kubeconfig file created by Gardener for you.
+
+This file will be located in the
+`/path/to/gardener/example/gardener-local/kind/local/kubeconfig` path after
+creating the dev environment.
+
+``` shell
+export KUBECONFIG=/path/to/gardener/example/gardener-local/kind/local/kubeconfig
 ```
 
 You can use the following command in order to load the OCI image to the nodes of
@@ -106,8 +124,8 @@ In the [./examples/dev-setup](./examples/dev-setup) directory you can find
 `ControllerDeployment` and `ControllerRegistration` resources.
 
 For more information about `ControllerDeployment` and `ControllerRegistration`
-resources, please make sure to check the [Registering Extension
-Controllers](https://gardener.cloud/docs/gardener/extensions/registration/)
+resources, please make sure to check the
+[Registering Extension Controllers](https://gardener.cloud/docs/gardener/extensions/registration/)
 documentation.
 
 The `deploy` target takes care of deploying your extension in a local Gardener
@@ -167,6 +185,120 @@ extension resource.
 
 ``` shell
 kubectl --namespace shoot--local--local annotate extensions example gardener.cloud/operation=reconcile
+```
+
+## Development Environment with Gardener Operator
+
+The extension can also be deployed via the
+[Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/).
+
+In order to start a local development environment with the Gardener Operator,
+please refer to the following documentations.
+
+- [Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/)
+- [Gardener: Local setup with gardener-operator](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/#alternative-way-to-set-up-garden-and-seed-leveraging-gardener-operator)
+
+In summary, these are the steps you need to follow in order to start a local
+development environment with the [Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/),
+however, please make sure that you read the documents above for additional details.
+
+``` shell
+make kind-multi-zone-up operator-up operator-seed-up
+```
+
+Before you continue with the next steps, make sure that you configure your
+`KUBECONFIG` to point to the kubeconfig file of the cluster, which runs the
+Gardener Operator.
+
+There will be two kubeconfig files created for you, after the dev environment
+has been created.
+
+| Path                                                                  | Description                                                         |
+|-----------------------------------------------------------------------|---------------------------------------------------------------------|
+| `/path/to/gardener/example/gardener-local/kind/multi-zone/kubeconfig` | Cluster in which `gardener-operator` runs (a.k.a _runtime_ cluster) |
+| `/path/to/gardener/dev-setup/kubeconfigs/virtual-garden/kubeconfig`   | The _virtual_ garden cluster                                        |
+
+Throughout this document we will refer to the kubeconfigs for _runtime_ and
+_virtual_ clusters as `$KUBECONFIG_RUNTIME` and `$KUBECONFIG_VIRTUAL`
+respectively.
+
+Before deploying the extension we need to target the _runtime_ cluster, since
+this is where the extension resources for `gardener-operator` reside.
+
+``` shell
+export KUBECONFIG=$KUBECONFIG_RUNTIME
+```
+
+In order to deploy the extension, execute the following command.
+
+``` shell
+make deploy-operator
+```
+
+The `deploy-operator` target takes care of the following.
+
+1. Builds a Docker image of the extension
+2. Loads the image into the `kind` cluster nodes
+3. Packages the Helm charts and pushes them to the local registry
+4. Deploys the `Extension` (from group `operator.gardener.cloud/v1alpha1`) to
+   the _runtime_ cluster
+
+Verify that we have successfully created the
+`Extension` (from group `operator.gardener.cloud/v1alpha1`) resource.
+
+``` shell
+$ kubectl --kubeconfig $KUBECONFIG_RUNTIME get extop gardener-extension-example
+NAME                         INSTALLED   REQUIRED RUNTIME   REQUIRED VIRTUAL   AGE
+gardener-extension-example   True        False              False              85s
+```
+
+Verify that the respective `ControllerRegistration` and `ControllerDeployment`
+resources have been created by the `gardener-operator` in the _virtual_ garden
+cluster.
+
+``` shell
+> kubectl --kubeconfig $KUBECONFIG_VIRTUAL get controllerregistrations,controllerdeployments gardener-extension-example
+NAME                                                                    RESOURCES           AGE
+controllerregistration.core.gardener.cloud/gardener-extension-example   Extension/example   3m50s
+
+NAME                                                                  AGE
+controllerdeployment.core.gardener.cloud/gardener-extension-example   3m50s
+```
+
+Now we can create an example shoot with our extension enabled. The
+[examples/shoot.yaml](./examples/shoot.yaml) file provides a ready-to-use shoot
+manifest, which we will use.
+
+``` shell
+kubectl --kubeconfig $KUBECONFIG_VIRTUAL apply -f examples/shoot.yaml
+```
+
+Once we create the shoot cluster, `gardenlet` will start deploying our
+`gardener-extension-example`, since it is required by our shoot.
+
+Verify that the extension has been successfully installed by checking the
+corresponding `ControllerInstallation` resource for our extension.
+
+``` shell
+$ kubectl --kubeconfig $KUBECONFIG_VIRTUAL get controllerinstallations.core.gardener.cloud
+NAME                               REGISTRATION                 SEED    VALID   INSTALLED   HEALTHY   PROGRESSING   AGE
+gardener-extension-example-ng4r8   gardener-extension-example   local   True    True        True      False         2m9s
+```
+
+After your shoot cluster has been successfully created and reconciled, verify
+that the extension is healthy.
+
+``` shell
+$ kubectl --kubeconfig $KUBECONFIG_RUNTIME --namespace shoot--local--local get extensions
+NAME      TYPE      STATUS      AGE
+example   example   Succeeded   2m37s
+```
+
+In order to trigger reconciliation of the extension you can annotate the
+extension resource.
+
+``` shell
+kubectl --kubeconfig $KUBECONFIG_RUNTIME --namespace shoot--local--local annotate extensions example gardener.cloud/operation=reconcile
 ```
 
 # Tests
