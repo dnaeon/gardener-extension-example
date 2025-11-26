@@ -35,7 +35,11 @@ EXTENSION_NAME ?= gardener-extension-example
 # Registry used for local development
 LOCAL_REGISTRY ?= garden.local.gardener.cloud:5001
 # Name of the kind cluster for local development
-KIND_CLUSTER ?= gardener-local
+GARDENER_DEV_CLUSTER ?= gardener-local
+# Name of the kind cluster for local development (with gardener-operator)
+GARDENER_DEV_OPERATOR_CLUSTER ?= gardener-operator-local
+# Name of the kind cluster for local Gardener dev environment
+KIND_CLUSTER ?= $(GARDENER_DEV_CLUSTER)
 
 # Kubernetes code-generator tools
 #
@@ -218,11 +222,25 @@ update-version-tags:
 		$(GO_TOOL) yq -i '.spec.deployment.extension.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
 
 .PHONY: deploy
-deploy: generate update-version-tags kind-load-image helm-load-chart
+deploy: generate update-version-tags
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
 		kubectl apply -f -
+	$(MAKE) KIND_CLUSTER=$(GARDENER_DEV_CLUSTER) kind-load-image
+	$(MAKE) helm-load-chart
 
 .PHONY: undeploy
 undeploy:
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
+		kubectl delete --ignore-not-found=true -f -
+
+.PHONY: deploy-operator
+deploy-operator: generate update-version-tags
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
+		kubectl apply -f -
+	$(MAKE) KIND_CLUSTER=$(GARDENER_DEV_OPERATOR_CLUSTER) kind-load-image
+	$(MAKE) helm-load-chart
+
+.PHONY: undeploy-operator
+undeploy-operator:
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
 		kubectl delete --ignore-not-found=true -f -
