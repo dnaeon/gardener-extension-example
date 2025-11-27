@@ -51,8 +51,9 @@ extension:
     election_id: gardener-extension-example-leader-election
 # Extra values provided by gardenlet during extension deployment.
 #
-# See the link below for more details.
+# See the links below for more details.
 #
+# https://gardener.cloud/docs/gardener/extensions/registration/#helm-values
 # https://github.com/gardener/gardener/blob/d5071c800378616eb6bb2c7662b4b28f4cfe7406/pkg/gardenlet/controller/controllerinstallation/controllerinstallation/reconciler.go#L236-L263
 gardener:
   version: "unknown"
