@@ -236,10 +236,10 @@ update-version-tags:
 
 .PHONY: deploy
 deploy: generate update-version-tags
-	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
-		kubectl apply -f -
 	$(MAKE) KIND_CLUSTER=$(GARDENER_DEV_CLUSTER) kind-load-image
 	$(MAKE) helm-load-chart
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
+		kubectl apply -f -
 
 .PHONY: undeploy
 undeploy:
@@ -248,10 +248,10 @@ undeploy:
 
 .PHONY: deploy-operator
 deploy-operator: generate update-version-tags
-	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
-		kubectl apply -f -
 	$(MAKE) KIND_CLUSTER=$(GARDENER_DEV_OPERATOR_CLUSTER) kind-load-image
 	$(MAKE) helm-load-chart
+	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
+		kubectl apply -f -
 
 .PHONY: undeploy-operator
 undeploy-operator:
