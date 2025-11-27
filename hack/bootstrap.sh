@@ -230,11 +230,11 @@ function _bootstrap_project {
   _msg_info "   $ make deploy"
 
   if [[ "${PRESERVE_HISTORY}" == "false" ]]; then
-    _msg_info " 6. Initialize a new repo and commit"
-    _msg_info "   $ git init -b main"
-    _msg_info "   $ git add ."
-    _msg_info "   $ git commit -m 'Initial commit'"
     rm -rf "${_dst_path}/.git"
+    git -C "${_dst_path}" init -b main
+    _msg_info " 6. Review the generated code and commit"
+    _msg_info "   $ cd ${_dst_path}"
+    _msg_info "   $ git add . && git commit -m 'Initial commit'"
   fi
 }
 
