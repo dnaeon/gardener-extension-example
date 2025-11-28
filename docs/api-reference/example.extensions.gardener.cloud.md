@@ -6,6 +6,7 @@
 
 ## example.extensions.gardener.cloud/v1alpha1
 
+Package v1alpha1 provides the v1alpha1 version of the external API types.
 
 
 
