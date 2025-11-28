@@ -5,4 +5,5 @@
 // +k8s:deepcopy-gen=package
 // +groupName=example.extensions.gardener.cloud
 
+// Package config provides the internal API types from config group.
 package config

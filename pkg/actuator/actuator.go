@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Package actuator provides the implementation of a Gardener extension
+// actuator.
 package actuator
 
 import (

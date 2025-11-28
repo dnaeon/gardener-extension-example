@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// Package controller provides utility wrappers for registering controllers with
+// Gardener extension actuators.
 package controller
 
 import (
