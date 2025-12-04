@@ -1,6 +1,6 @@
 module gardener-extension-example/internal/tools
 
-go 1.25.0
+go 1.25.3
 
 tool (
 	github.com/elastic/crd-ref-docs
@@ -171,7 +171,7 @@ require (
 	github.com/ianlancetaylor/demangle v0.0.0-20240805132620-81f5be970eca // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/incu6us/goimports-reviser/v3 v3.10.0 // indirect
+	github.com/incu6us/goimports-reviser/v3 v3.11.0 // indirect
 	github.com/jgautheron/goconst v1.8.2 // indirect
 	github.com/jingyugao/rowserrcheck v1.1.1 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
