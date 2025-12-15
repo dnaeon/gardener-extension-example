@@ -33,7 +33,7 @@ IMAGE ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/examp
 EXTENSION_NAME ?= gardener-extension-example
 
 # Registry used for local development
-LOCAL_REGISTRY ?= garden.local.gardener.cloud:5001
+LOCAL_REGISTRY ?= registry.local.gardener.cloud:5000
 # Name of the kind cluster for local development
 GARDENER_DEV_CLUSTER ?= gardener-local
 # Name of the kind cluster for local development (with gardener-operator)
