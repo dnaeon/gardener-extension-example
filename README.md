@@ -352,7 +352,7 @@ Extensions and the available extensions API.
 - [Gardener: Extension Resources](https://github.com/gardener/gardener/tree/master/docs/extensions/resources)
 - [Gardener: Extensions API Contract](https://github.com/gardener/gardener/blob/master/docs/extensions/resources/extension.md)
 - [Gardener: How to Set Up a Gardener Landscape](https://gardener.cloud/docs/gardener/deployment/setup_gardener/)
-- [Gardener: Extension Packages (Go)](https://github.com/gardener/gardener/tree/master/extensions/pkg)
+- [Gardener: Extension API Packages (Go)](https://github.com/gardener/gardener/tree/master/extensions/pkg)
 
 # Contributing
 
