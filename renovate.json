@@ -4,6 +4,6 @@
     "config:recommended"
   ],
   "postUpdateOptions": [
-    "gomodTidy",
+    "gomodTidy"
   ]
 }
