@@ -61,8 +61,8 @@ NAME:
   ${_SCRIPT_NAME} - bootstrap an extension project
 
 USAGE:
-  ${_SCRIPT_NAME} [h|help]
-  ${_SCRIPT_NAME} [g|gen|generate] /path/to/new/project
+  ${_SCRIPT_NAME} h|help
+  ${_SCRIPT_NAME} g|gen|generate </path/to/new/project>
 
 EXAMPLES:
   Display usage info:
@@ -95,6 +95,9 @@ function _validate_env_vars() {
 # $1: path in which to bootstrap project
 function _bootstrap_project {
   local _dst_path="${1}"
+  local _src_path=""
+
+  _src_path=$( realpath "${_PROJECT_DIR}" )
 
   if [[ -z "${_dst_path}" ]]; then
     _msg_error "no destination path specified" 1
@@ -109,6 +112,7 @@ function _bootstrap_project {
         --exclude '*~' \
         --exclude '*.o' \
         --exclude 'bin/*' \
+        --exclude 'todo.org' \
         --exclude bootstrap.sh \
         --exclude coverage.txt \
         --exclude 'generated.*.go' \
@@ -116,7 +120,7 @@ function _bootstrap_project {
         --exclude 'hack/bootstrap-vars.env' \
         --exclude 'images/*' \
         --exclude 'docs/api-reference/*' \
-        "${_PROJECT_DIR}/" "${_dst_path}"
+        "${_src_path}/" "${_dst_path}"
 
   _msg_info "Fixing Go modules and packages ..."
   sed -i'' -e "s|gardener-extension-example|${EXTENSION_REPO}|g" "${_dst_path}/go.mod"
@@ -195,7 +199,6 @@ function _bootstrap_project {
        -and -not -path "${_dst_path}/LICENSE" \
        -and -not -path "${_dst_path}/renovate.json" \
        -and -not -path "${_dst_path}/internal/tools/*" \
-       -and -not -path "${_dst_path}/hack/*" \
        -and -not -path "${_dst_path}/CONTRIBUTING" \
        -and -not -path "${_dst_path}/VERSION" \
        -and -not -path "${_dst_path}/.golangci.yaml" \
