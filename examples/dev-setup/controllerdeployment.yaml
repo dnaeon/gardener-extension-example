@@ -5,5 +5,5 @@ metadata:
   name: gardener-extension-example
 helm:
   ociRepository:
-    ref: garden.local.gardener.cloud:5001/helm-charts/gardener-extension-example:v0.1.0-dev
+    ref: registry.local.gardener.cloud:5001/helm-charts/gardener-extension-example:v0.1.0-dev
   values: {}
