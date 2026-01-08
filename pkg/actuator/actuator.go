@@ -17,12 +17,17 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/component-base/featuregate"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"gardener-extension-example/pkg/apis/config"
 	"gardener-extension-example/pkg/metrics"
 )
+
+// ErrInvalidActuator is an error which is returned when creating an [Actuator]
+// with invalid config settings.
+var ErrInvalidActuator = errors.New("invalid actuator")
 
 const (
 	// Name is the name of the actuator
@@ -36,7 +41,6 @@ const (
 
 // Actuator is an implementation of [extension.Actuator].
 type Actuator struct {
-	reader  client.Reader
 	client  client.Client
 	decoder runtime.Decoder
 
@@ -57,8 +61,13 @@ var _ extension.Actuator = &Actuator{}
 type Option func(a *Actuator) error
 
 // New creates a new actuator with the given options.
-func New(opts ...Option) (*Actuator, error) {
+func New(c client.Client, opts ...Option) (*Actuator, error) {
+	if c == nil {
+		return nil, fmt.Errorf("%w: no client specified", ErrInvalidActuator)
+	}
+
 	act := &Actuator{
+		client:                c,
 		gardenletFeatureGates: make(map[featuregate.Feature]bool),
 	}
 
@@ -68,31 +77,11 @@ func New(opts ...Option) (*Actuator, error) {
 		}
 	}
 
+	if act.decoder == nil {
+		act.decoder = serializer.NewCodecFactory(c.Scheme(), serializer.EnableStrict).UniversalDecoder()
+	}
+
 	return act, nil
-}
-
-// WithClient is an [Option], which configures the [Actuator] with the given
-// [client.Client].
-func WithClient(c client.Client) Option {
-	opt := func(a *Actuator) error {
-		a.client = c
-
-		return nil
-	}
-
-	return opt
-}
-
-// WithReader is an [Option], which configures the [Actuator] with the given
-// [client.Reader].
-func WithReader(r client.Reader) Option {
-	opt := func(a *Actuator) error {
-		a.reader = r
-
-		return nil
-	}
-
-	return opt
 }
 
 // WithDecoder is an [Option], which configures the [Actuator] with the given
