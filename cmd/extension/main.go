@@ -11,7 +11,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	managercmd "gardener-extension-example/cmd/extension/internal/manager"
 	"gardener-extension-example/pkg/version"
 )
 
@@ -22,7 +21,7 @@ func main() {
 		EnableShellCompletion: true,
 		Usage:                 "an example gardener extension",
 		Commands: []*cli.Command{
-			managercmd.New(),
+			NewManagerCommand(),
 		},
 	}
 
