@@ -89,6 +89,13 @@ $(1)
 
 endef
 
+##@ gardener-extension-example
+
+.PHONY: help
+help: ## Display this help.
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+
 $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
 
@@ -120,10 +127,10 @@ api-ref-docs:
 		--source-path $(SRC_ROOT)/pkg/apis
 
 .PHONY: build
-build: $(BINARY)
+build: $(BINARY)  ## Build the extension binary.
 
 .PHONY: run
-run: $(BINARY)
+run: $(BINARY)  ## Run the extension binary.
 	$(BINARY) manager
 
 .PHONY: get
@@ -137,7 +144,7 @@ gotidy:
 	@cd $(TOOLS_MOD_DIR) && $(GOCMD) mod tidy
 
 .PHONY: test
-test:
+test:   ## Start envtest and run the unit tests.
 	@echo "Setting up envtest for Kubernetes version v$(ENVTEST_K8S_VERSION) ..."
 	@KUBEBUILDER_ASSETS="$$( $(GO_TOOL) setup-envtest use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCAL_BIN) -p path )" \
 		$(GOCMD) test \
@@ -148,7 +155,7 @@ test:
 			$(shell $(GOCMD) list ./pkg/... | grep -v $(GO_MODULE)/pkg/apis)
 
 .PHONY: docker-build
-docker-build:
+docker-build:  ## Build the extension Docker image.
 	@docker build \
 		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
 		--build-arg VERSION=$(VERSION) \
@@ -158,7 +165,7 @@ docker-build:
 		-t $(IMAGE):latest .
 
 .PHONY: docker-push
-docker-push:
+docker-push:  ## Push the extension Docker image.
 	@docker push --quiet $(IMAGE):$(VERSION)
 	@docker push --quiet $(IMAGE):$(EFFECTIVE_VERSION)
 	@docker push --quiet $(IMAGE):latest
@@ -168,7 +175,7 @@ update-tools:
 	$(GOCMD) get -u -modfile $(TOOLS_MOD_FILE) tool
 
 .PHONY: addlicense
-addlicense:
+addlicense:  ## Add license headers to all source files.
 	@$(GO_TOOL) addlicense $(ADDLICENSE_OPTS) .
 
 .PHONY: checklicense
@@ -181,12 +188,12 @@ checklicense:
 	}
 
 .PHONY: generate
-generate:
+generate:   ## Run code-generator tools.
 	@echo "Running code-generator tools ..."
 	$(foreach gen_tool,$(K8S_GEN_TOOLS),$(call run-command,$(GO_TOOL) $(gen_tool) -v=$(K8S_GEN_TOOLS_LOG_LEVEL) ./pkg/apis/...))
 
 .PHONY: generate-operator-extension
-generate-operator-extension:
+generate-operator-extension:  ## Generate operator extension example resources.
 	@$(GO_TOOL) extension-generator \
 		--name $(EXTENSION_NAME) \
 		--component-category extension \
@@ -196,7 +203,7 @@ generate-operator-extension:
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension
 
 .PHONY: check-helm
-check-helm:
+check-helm:  ## Lint helm charts and validate rendered templates.
 	@$(GO_TOOL) helm lint $(SRC_ROOT)/charts
 	@$(GO_TOOL) helm template $(SRC_ROOT)/charts | \
 		$(GO_TOOL) kubeconform \
@@ -204,7 +211,7 @@ check-helm:
 			-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
 
 .PHONY: check-examples
-check-examples:
+check-examples:  ## Lint the generated example resources.
 	@echo "Checking example resources ..."
 	@$(GO_TOOL) kubeconform \
 		$(KUBECONFORM_OPTS) \
@@ -217,20 +224,20 @@ check-examples:
 			-schema-location "$(SRC_ROOT)/test/schemas/{{.Group}}/{{.ResourceAPIVersion}}/{{.ResourceKind}}.json"
 
 .PHONY: kind-load-image
-kind-load-image:
+kind-load-image:  ## Load extension images to target cluster
 	@$(MAKE) docker-build
 	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(VERSION)
 	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):$(EFFECTIVE_VERSION)
 	@kind load docker-image --name $(KIND_CLUSTER) $(IMAGE):latest
 
 .PHONY: helm-load-chart
-helm-load-chart:
+helm-load-chart:  ## Load helm chart to local registry
 	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(VERSION)
 	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
 	@rm -f $(EXTENSION_NAME)-$(VERSION).tgz
 
 .PHONY: update-version-tags
-update-version-tags:
+update-version-tags:  ## Update version tags in helm charts and example resources based on VERSION file
 	@env version=$(VERSION) \
 		$(GO_TOOL) yq -i '.version = env(version)' $(SRC_ROOT)/charts/Chart.yaml
 	@env image=$(IMAGE) tag=$(VERSION) \
@@ -243,19 +250,19 @@ update-version-tags:
 deploy deploy-operator: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
 
 .PHONY: deploy
-deploy: generate update-version-tags docker-build docker-push helm-load-chart
+deploy: generate update-version-tags docker-build docker-push helm-load-chart    ## Generate and deploy the extension
 	@env WITH_GARDENER_OPERATOR=false EXTENSION_IMAGE=$(IMAGE):$(VERSION) $(HACK_DIR)/deploy-dev-setup.sh
 
 .PHONY: undeploy
-undeploy:
+undeploy:  ## Cleanup the deployed extension
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
 		kubectl delete --ignore-not-found=true -f -
 
 .PHONY: deploy-operator
-deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart
+deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy the operator extension
 	@env WITH_GARDENER_OPERATOR=true EXTENSION_IMAGE=$(IMAGE):$(VERSION) $(HACK_DIR)/deploy-dev-setup.sh
 
 .PHONY: undeploy-operator
-undeploy-operator:
+undeploy-operator:  ## Cleanup the deployed operator extension
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
 		kubectl delete --ignore-not-found=true -f -
