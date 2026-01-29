@@ -250,7 +250,7 @@ update-version-tags:  ## Update version tags in helm charts and example resource
 deploy deploy-operator: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
 
 .PHONY: deploy
-deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Generate and deploy the extension
+deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Generate and deploy the extension.
 	@env WITH_GARDENER_OPERATOR=false EXTENSION_IMAGE=$(IMAGE):$(VERSION) $(HACK_DIR)/deploy-dev-setup.sh
 
 .PHONY: undeploy
