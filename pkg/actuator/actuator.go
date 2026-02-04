@@ -22,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"gardener-extension-example/pkg/apis/config"
+	"gardener-extension-example/pkg/apis/config/validation"
 	"gardener-extension-example/pkg/metrics"
 )
 
@@ -176,8 +177,7 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 		return nil
 	}
 
-	// TODO(user): Remove the following check, if your extension does not
-	// require any configuration.
+	// Parse and validate the provider config
 	if ex.Spec.ProviderConfig == nil {
 		return errors.New("no provider config specified")
 	}
@@ -185,13 +185,14 @@ func (a *Actuator) Reconcile(ctx context.Context, logger logr.Logger, ex *extens
 	// Decode provider spec configuration into our known config type.
 	var cfg config.ExampleConfig
 	if err := runtime.DecodeInto(a.decoder, ex.Spec.ProviderConfig.Raw, &cfg); err != nil {
-		return errors.New("invalid provider spec configuration")
+		return fmt.Errorf("invalid provider spec configuration: %w", err)
 	}
 
-	// TODO(user): validate any other config settings for your extension.
-	if cfg.Spec.Foo == "" {
-		return errors.New("foo must not be empty")
+	if err := validation.Validate(cfg); err != nil {
+		return err
 	}
+
+	// TODO(user): implement the main reconciliation logic
 
 	return nil
 }
