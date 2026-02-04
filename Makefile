@@ -157,7 +157,12 @@ test:  ## Start envtest and run the unit tests.
 			-race \
 			-coverprofile=coverage.txt \
 			-covermode=atomic \
-			$(shell $(GOCMD) list ./pkg/... | grep -v $(GO_MODULE)/pkg/apis)
+			$(shell $(GOCMD) list ./pkg/... )
+	@sed -i \
+		-e '/generated.*\.go/d' \
+		-e '/pkg\/apis\/config\/install/d' \
+		-e '/pkg\/apis\/config\/register\.go/d' \
+		-e '/pkg\/metrics/d' coverage.txt
 
 .PHONY: docker-build
 docker-build:  ## Build the extension Docker image.
