@@ -161,7 +161,7 @@ func NewWebhookCommand() *cli.Command {
 			&cli.StringFlag{
 				Name:        "kubeconfig",
 				Usage:       "path to a kubeconfig when running out-of-cluster",
-				Sources:     cli.EnvVars("KUBECONFIG"),
+				Sources:     cli.EnvVars("KUBECONFIG", "GARDEN_KUBECONFIG"),
 				Destination: &flags.kubeconfig,
 				Action: func(ctx context.Context, c *cli.Command, val string) error {
 					return os.Setenv(clientcmd.RecommendedConfigPathEnvVar, val)
