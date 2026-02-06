@@ -4,6 +4,15 @@ metadata:
   name: gardener-extension-example
 spec:
   deployment:
+    admission:
+      runtimeCluster:
+        helm:
+          ociRepository:
+            ref: registry.local.gardener.cloud:5001/helm-charts/gardener-extension-example-admission-runtime:v0.1.0-dev
+      virtualCluster:
+        helm:
+          ociRepository:
+            ref: registry.local.gardener.cloud:5001/helm-charts/gardener-extension-example-admission-virtual:v0.1.0-dev
     extension:
       helm:
         ociRepository:
