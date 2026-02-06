@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package main
+package controller
 
 import (
 	"context"
@@ -123,8 +123,8 @@ func getFlags(ctx context.Context) *flags {
 	return conf
 }
 
-// NewManagerCommand creates a new [cli.Command] for running the controller manager.
-func NewManagerCommand() *cli.Command {
+// New creates a new [cli.Command] for running the extension controller manager.
+func New() *cli.Command {
 	flags := flags{
 		gardenletFeatureGates: make(map[featuregate.Feature]bool),
 	}
@@ -274,7 +274,8 @@ func NewManagerCommand() *cli.Command {
 			// values to Helm, which our CLI app can pick up.
 			&cli.StringFlag{
 				Name:        "gardener-version",
-				Usage:       "version of gardener provided by gardenlet during deployment",
+				Usage:       "version of gardener provided by gardenlet or gardener-operator",
+				Sources:     cli.EnvVars("GARDENER_VERSION"),
 				Destination: &flags.gardenerVersion,
 			},
 			&cli.StringMapFlag{
@@ -354,9 +355,6 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	logger.Info("starting manager")
-	if err := m.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start manager: %w", err)
-	}
 
-	return nil
+	return m.Start(ctx)
 }
