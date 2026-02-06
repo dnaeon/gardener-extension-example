@@ -214,11 +214,12 @@ generate-operator-extension:  ## Generate operator extension example resources.
 
 .PHONY: check-helm
 check-helm:  ## Lint helm charts and validate rendered templates.
-	@$(GO_TOOL) helm lint $(SRC_ROOT)/charts
-	@$(GO_TOOL) helm template $(SRC_ROOT)/charts | \
-		$(GO_TOOL) kubeconform \
-			$(KUBECONFORM_OPTS) \
-			-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'
+	@for chart in controller admission-runtime admission-virtual; do \
+		$(GO_TOOL) helm lint $(SRC_ROOT)/charts/$${chart}; \
+		$(GO_TOOL) helm template $(SRC_ROOT)/charts/$${chart} | \
+			$(GO_TOOL) kubeconform $(KUBECONFORM_OPTS) \
+				-schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'; \
+	done
 
 .PHONY: check-examples
 check-examples:  ## Lint the generated example resources.
@@ -242,20 +243,32 @@ kind-load-image:  ## Load extension images to target cluster.
 
 .PHONY: helm-load-chart
 helm-load-chart:  ## Load helm chart to local registry.
-	@$(GO_TOOL) helm package $(SRC_ROOT)/charts --version $(VERSION)
-	@$(GO_TOOL) helm push --plain-http $(EXTENSION_NAME)-$(VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts
-	@rm -f $(EXTENSION_NAME)-$(VERSION).tgz
+	@for chart in controller admission-runtime admission-virtual; do \
+		chart_name=$$( $(GO_TOOL) yq '.name' $(SRC_ROOT)/charts/$${chart}/Chart.yaml ); \
+		$(GO_TOOL) helm package $(SRC_ROOT)/charts/$${chart} --version $(VERSION); \
+		$(GO_TOOL) helm push --plain-http $${chart_name}-$(VERSION).tgz oci://$(LOCAL_REGISTRY)/helm-charts; \
+		rm -f $${chart_name}-$(VERSION).tgz; \
+	done
 
 .PHONY: update-version-tags
 update-version-tags:  ## Update version tags in helm charts and example resources based on VERSION file.
-	@env version=$(VERSION) \
-		$(GO_TOOL) yq -i '.version = env(version)' $(SRC_ROOT)/charts/Chart.yaml
-	@env image=$(IMAGE) tag=$(VERSION) \
-		$(GO_TOOL) yq -i '(.image.repository = env(image)) | (.image.tag = env(tag))' $(SRC_ROOT)/charts/values.yaml
+	@for chart in controller admission-runtime admission-virtual; do \
+		env version=$(VERSION) $(GO_TOOL) yq -i '.version = env(version)' $(SRC_ROOT)/charts/$${chart}/Chart.yaml; \
+	done
+
+	@for chart in controller admission-runtime; do \
+		env image=$(IMAGE) tag=$(VERSION) \
+			$(GO_TOOL) yq -i '(.image.repository = env(image)) | (.image.tag = env(tag))' $(SRC_ROOT)/charts/$${chart}/values.yaml; \
+	done
+
 	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(VERSION) \
 		$(GO_TOOL) yq -i '.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/dev-setup/controllerdeployment.yaml
 	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME):$(VERSION) \
 		$(GO_TOOL) yq -i '.spec.deployment.extension.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME)-admission-runtime:$(VERSION) \
+		$(GO_TOOL) yq -i '.spec.deployment.admission.runtimeCluster.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
+	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME)-admission-virtual:$(VERSION) \
+		$(GO_TOOL) yq -i '.spec.deployment.admission.virtualCluster.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/base/extension.yaml
 
 deploy deploy-operator: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
 
