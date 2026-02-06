@@ -11,6 +11,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
+	controllercmd "gardener-extension-example/cmd/extension/controller"
+	webhookcmd "gardener-extension-example/cmd/extension/webhook"
 	"gardener-extension-example/pkg/version"
 )
 
@@ -21,7 +23,8 @@ func main() {
 		EnableShellCompletion: true,
 		Usage:                 "an example gardener extension",
 		Commands: []*cli.Command{
-			NewManagerCommand(),
+			controllercmd.New(),
+			webhookcmd.New(),
 		},
 	}
 

@@ -50,6 +50,7 @@ type flags struct {
 	leaderElectionID            string
 	leaderElectionNamespace     string
 	kubeconfig                  string
+	gardenKubeconfig            string
 	zapLogLevel                 string
 	zapLogFormat                string
 	pprofBindAddr               string
@@ -77,6 +78,28 @@ type flags struct {
 // options.
 func (f *flags) getLogger() logr.Logger {
 	return glogger.MustNewZapLogger(f.zapLogLevel, f.zapLogFormat)
+}
+
+// gardenKubeconfigIsSet is a predicate which returns whether a kubeconfig for
+// the Garden cluster was set.
+//
+// The Garden cluster represents the target cluster, which the controller
+// manager will be operating on, e.g. watch, validate, and mutate resources.
+func (f *flags) gardenKubeconfigIsSet() bool {
+	return f.gardenKubeconfig != ""
+}
+
+// loadGardenKubeconfig loads the [rest.Config] of the target cluster against which
+// the controller manager runs.
+//
+// The target garden cluster config is specified via the `GARDEN_KUBECONFIG' env
+// var, which is captured in [flags.gardenKubeconfig].
+func (f *flags) loadGardenKubeconfig() (*rest.Config, error) {
+	if f.gardenKubeconfig == "" {
+		return nil, errors.New("no garden kubeconfig specified")
+	}
+
+	return clientcmd.BuildConfigFromFlags("", f.gardenKubeconfig)
 }
 
 // sourceClusterIsEnabled is a predicate, which returns whether a
@@ -156,8 +179,22 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 	// `SOURCE_KUBECONFIG' will be used in order to configure the controller
 	// manager leader election settings. The same [rest.Config] is used by
 	// Gardener's certificate controller for managing and rotating
-	// certificate secrets for the webhook server, which reside in a
-	// different cluster.
+	// certificate secrets for the webhook server.
+	//
+	// When no SOURCE_CLUSTER is specified the source cluster is configured
+	// via in-cluster configuration.
+	//
+	// Usually the source cluster for admission webhooks is the runtime
+	// cluster, which is where the admission webhooks are also deployed.
+	//
+	// The resources with which the admission webhooks work, however, might
+	// be located in a separate cluster, called a target cluster.
+	//
+	// For example an admission webhook running in the runtime cluster and
+	// validating shoot resources, will be configured with:
+	//
+	// a) source cluster being the runtime cluster itself (unless SOURCE_CLUSTER and SOURCE_KUBECONFIG are set)
+	// b) target cluster being the virtual cluster, where shoots reside
 	if f.sourceClusterIsEnabled() {
 		managerOpts = append(
 			managerOpts,
@@ -181,6 +218,20 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 			},
 		}
 		managerOpts = append(managerOpts, mgr.WithCacheOptions(cacheOpts))
+	}
+
+	// When a `GARDEN_KUBECONFIG' is specified we need to load the
+	// [rest.Config] referenced by it.
+	//
+	// The controller manager will be configured to use this [rest.Config],
+	// so that watching, validating, and mutating resources will happen
+	// against the target cluster referenced by the loaded [rest.Config].
+	if f.gardenKubeconfigIsSet() {
+		targetConfig, err := f.loadGardenKubeconfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load garden kubeconfig: %w", err)
+		}
+		managerOpts = append(managerOpts, mgr.WithConfig(targetConfig))
 	}
 
 	m, err := mgr.New(managerOpts...)
@@ -248,12 +299,12 @@ func New() *cli.Command {
 	cmd := &cli.Command{
 		Name:    "webhook",
 		Aliases: []string{"w"},
-		Usage:   "start webhook server",
+		Usage:   "start extension webhook server",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "extension-name",
 				Usage:       "name of the gardener extension",
-				Value:       "gardener-extension-example-admission",
+				Value:       "gardener-extension-example-admission", // TODO: use the constants
 				Sources:     cli.EnvVars("EXTENSION_NAME"),
 				Destination: &flags.extensionName,
 			},
@@ -287,25 +338,32 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:        "leader-election-id",
 				Usage:       "the leader election id to use, if leader election is enabled",
-				Value:       "gardener-extension-example-admission",
+				Value:       "gardener-extension-example-admission", // TODO: use the constant
 				Sources:     cli.EnvVars("LEADER_ELECTION_ID"),
 				Destination: &flags.leaderElectionID,
 			},
 			&cli.StringFlag{
 				Name:        "leader-election-namespace",
 				Usage:       "namespace to use for the leader election lease",
-				Value:       "gardener-extension-example",
+				Value:       "gardener-extension-example", // TODO: constant
 				Sources:     cli.EnvVars("LEADER_ELECTION_NAMESPACE"),
 				Destination: &flags.leaderElectionNamespace,
 			},
 			&cli.StringFlag{
 				Name:        "kubeconfig",
 				Usage:       "path to a kubeconfig when running out-of-cluster",
-				Sources:     cli.EnvVars("KUBECONFIG", "GARDEN_KUBECONFIG"),
+				Sources:     cli.EnvVars("KUBECONFIG"),
 				Destination: &flags.kubeconfig,
 				Action: func(ctx context.Context, c *cli.Command, val string) error {
 					return os.Setenv(clientcmd.RecommendedConfigPathEnvVar, val)
 				},
+			},
+			&cli.StringFlag{
+				Name:        "garden-kubeconfig",
+				Aliases:     []string{"target-kubeconfig"},
+				Usage:       "path to a kubeconfig for the garden cluster",
+				Sources:     cli.EnvVars("GARDEN_KUBECONFIG"),
+				Destination: &flags.gardenKubeconfig,
 			},
 			&cli.StringFlag{
 				Name:  "log-level",
