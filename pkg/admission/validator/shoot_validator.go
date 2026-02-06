@@ -129,6 +129,8 @@ func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) er
 		return fmt.Errorf("%w: %s", ErrInvalidExtensionConfig, err.Error())
 	}
 
+	// TODO(user): additional validation checks
+
 	return nil
 }
 
