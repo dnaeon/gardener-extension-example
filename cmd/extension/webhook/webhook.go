@@ -7,22 +7,36 @@ package webhook
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"slices"
 
+	extensionscmdcontroller "github.com/gardener/gardener/extensions/pkg/controller/cmd"
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
-	gardenercorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	extensionscmdwebhook "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+	gardencoreinstall "github.com/gardener/gardener/pkg/apis/core/install"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	glogger "github.com/gardener/gardener/pkg/logger"
+	"github.com/go-logr/logr"
 	"github.com/urfave/cli/v3"
+	corev1 "k8s.io/api/core/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
+	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	admissionvalidator "gardener-extension-example/pkg/admission/validator"
 	configinstall "gardener-extension-example/pkg/apis/config/install"
 	"gardener-extension-example/pkg/mgr"
 )
@@ -53,6 +67,52 @@ type flags struct {
 	webhookConfigOwnerNamespace string
 	gardenerVersion             string
 	selfHostedShootCluster      bool
+	sourceClusterEnable         string
+	sourceClusterKubeconfig     string
+	sourceClusterRestConfig     *rest.Config
+	sourceCluster               cluster.Cluster
+}
+
+// getLogger returns a [logr.Logger] based on the specified command-line
+// options.
+func (f *flags) getLogger() logr.Logger {
+	return glogger.MustNewZapLogger(f.zapLogLevel, f.zapLogFormat)
+}
+
+// sourceClusterIsEnabled is a predicate, which returns whether a
+// `source cluster' has been enabled or not via the `SOURCE_CLUSTER' and
+// `SOURCE_KUBECONFIG' environment vars.
+//
+// The `SOURCE_CLUSTER' and `SOURCE_KUBECONFIG' env vars are captured in
+// [flags.sourceClusterEnable] and [flags.sourceClusterKubeconfig].
+func (f *flags) sourceClusterIsEnabled() bool {
+	return f.sourceClusterEnable == "enabled"
+}
+
+// loadSourceCluster loads the [rest.Config] and [cluster.Cluster] for the
+// source cluster.
+func (f *flags) loadSourceCluster() error {
+	if f.sourceClusterKubeconfig == "" {
+		return errors.New("no source cluster kubeconfig specified")
+	}
+
+	config, err := clientcmd.BuildConfigFromFlags("", f.sourceClusterKubeconfig)
+	if err != nil {
+		return fmt.Errorf("failed to load source cluster kubeconfig: %w", err)
+	}
+
+	sourceCluster, err := cluster.New(config, func(opts *cluster.Options) {
+		opts.Logger = f.getLogger()
+		opts.Cache.DefaultNamespaces = map[string]cache.Config{v1beta1constants.GardenNamespace: {}}
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create a new source cluster from config: %w", err)
+	}
+
+	f.sourceCluster = sourceCluster
+	f.sourceClusterRestConfig = config
+
+	return nil
 }
 
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
@@ -66,10 +126,10 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 	}
 	webhookServer := webhook.NewServer(webhookOpts)
 
-	return mgr.New(
+	managerOpts := []mgr.Option{
 		mgr.WithContext(ctx),
 		mgr.WithAddToScheme(clientgoscheme.AddToScheme),
-		mgr.WithAddToScheme(gardenercorev1beta1.AddToScheme),
+		mgr.WithInstallScheme(gardencoreinstall.Install),
 		mgr.WithInstallScheme(configinstall.Install),
 		mgr.WithMetricsAddress(f.metricsBindAddr),
 		mgr.WithHealthProbeAddress(f.healthProbeBindAddr),
@@ -84,7 +144,87 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 			Burst: f.clientConnBurst,
 		}),
 		mgr.WithWebhookServer(webhookServer),
+		mgr.WithReadyzCheck("webhook-server", webhookServer.StartedChecker()),
+	}
+
+	// When the `SOURCE_CLUSTER' env var is set to `enabled', which is
+	// captured in [flags.sourceClusterEnable], then we need to load the
+	// kubeconfig referenced by the `SOURCE_KUBECONFIG' env var, which is
+	// captured in [flags.sourceClusterKubeconfig].
+	//
+	// The [rest.Config] we get after successfully loading
+	// `SOURCE_KUBECONFIG' will be used in order to configure the controller
+	// manager leader election settings. The same [rest.Config] is used by
+	// Gardener's certificate controller for managing and rotating
+	// certificate secrets for the webhook server, which reside in a
+	// different cluster.
+	if f.sourceClusterIsEnabled() {
+		managerOpts = append(
+			managerOpts,
+			mgr.WithLeaderElectionConfig(f.sourceClusterRestConfig),
+			mgr.WithHealthzCheck("source-informer-sync", gardenerhealthz.NewCacheSyncHealthzWithDeadline(f.getLogger(), clock.RealClock{}, f.sourceCluster.GetCache(), gardenerhealthz.DefaultCacheSyncDeadline)),
+			mgr.WithReadyzCheck("source-informer-sync", gardenerhealthz.NewCacheSyncHealthz(f.sourceCluster.GetCache())),
+			mgr.WithRunnable(f.sourceCluster),
+		)
+	} else {
+		// When we don't have a `SOURCE_CLUSTER', we fallback to
+		// in-cluster configuration. Also, restrict the cache for
+		// secrets to the configured namespace in order to avoid the
+		// need for cluster-wide list/watch permissions.
+		cacheOpts := cache.Options{
+			ByObject: map[client.Object]cache.ByObject{
+				&corev1.Secret{}: {
+					Namespaces: map[string]cache.Config{
+						f.webhookConfigNamespace: {},
+					},
+				},
+			},
+		}
+		managerOpts = append(managerOpts, mgr.WithCacheOptions(cacheOpts))
+	}
+
+	m, err := mgr.New(managerOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := m.AddHealthzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthzWithDeadline(m.GetLogger(), clock.RealClock{}, m.GetCache(), gardenerhealthz.DefaultCacheSyncDeadline)); err != nil {
+		return nil, fmt.Errorf("failed to setup health check: %w", err)
+	}
+
+	if err := m.AddReadyzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthz(m.GetCache())); err != nil {
+		return nil, fmt.Errorf("failed to setup ready check: %w", err)
+	}
+
+	return m, nil
+}
+
+// getExtensionWebhookOpts returns [extensionscmdwebhook.AddToManagerOptions]
+// based on the specified command-line flags.
+func (f *flags) getExtensionWebhookOpts() *extensionscmdwebhook.AddToManagerOptions {
+	serverOpts := &extensionscmdwebhook.ServerOptions{
+		Mode:           f.webhookConfigMode,
+		URL:            f.webhookConfigURL,
+		ServicePort:    f.webhookConfigServicePort,
+		Namespace:      f.webhookConfigNamespace,
+		OwnerNamespace: f.webhookConfigOwnerNamespace,
+	}
+
+	generalOpts := &extensionscmdcontroller.GeneralOptions{
+		GardenerVersion:        f.gardenerVersion,
+		SelfHostedShootCluster: f.selfHostedShootCluster,
+	}
+
+	addToManagerOpts := extensionscmdwebhook.NewAddToManagerOptions(
+		f.extensionName,
+		"",
+		nil,
+		generalOpts,
+		serverOpts,
+		&extensionscmdwebhook.SwitchOptions{},
 	)
+
+	return addToManagerOpts
 }
 
 // flagsKey is the key used to store the parsed command-line flags in a
@@ -101,8 +241,8 @@ func getFlags(ctx context.Context) *flags {
 	return conf
 }
 
-// NewWebhookCommand creates a new [cli.Command] for running the webhook server.
-func NewWebhookCommand() *cli.Command {
+// New creates a new [cli.Command] for running the webhook server.
+func New() *cli.Command {
 	flags := flags{}
 
 	cmd := &cli.Command{
@@ -307,10 +447,28 @@ func NewWebhookCommand() *cli.Command {
 				Sources:     cli.EnvVars("WEBHOOK_CONFIG_OWNER_NAMESPACE"),
 				Destination: &flags.webhookConfigOwnerNamespace,
 			},
+			&cli.StringFlag{
+				Name:        "source-cluster",
+				Usage:       "specifies whether the `source cluster' is enabled or not",
+				Sources:     cli.EnvVars("SOURCE_CLUSTER"),
+				Destination: &flags.sourceClusterEnable,
+			},
+			&cli.StringFlag{
+				Name:        "source-cluster-kubeconfig",
+				Usage:       "path to the kubeconfig for the `source cluster'",
+				Sources:     cli.EnvVars("SOURCE_KUBECONFIG"),
+				Destination: &flags.sourceClusterKubeconfig,
+			},
 		},
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
-			ctrllog.SetLogger(glogger.MustNewZapLogger(flags.zapLogLevel, flags.zapLogFormat))
+			ctrllog.SetLogger(flags.getLogger())
 			newCtx := context.WithValue(ctx, flagsKey{}, &flags)
+
+			if flags.sourceClusterIsEnabled() {
+				if err := flags.loadSourceCluster(); err != nil {
+					return nil, err
+				}
+			}
 
 			return newCtx, nil
 		},
@@ -322,5 +480,47 @@ func NewWebhookCommand() *cli.Command {
 
 // runWebhookServer starts the webhook server.
 func runWebhookServer(ctx context.Context, cmd *cli.Command) error {
-	return nil
+	logger := ctrllog.Log.WithName("manager-setup")
+	logger.Info("creating manager")
+
+	flags := getFlags(ctx)
+	m, err := flags.getManager(ctx)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("setting up admission webhooks")
+
+	webhooks := make([]*extensionswebhook.Webhook, 0)
+	webhookFuncs := []func(m ctrl.Manager) (*extensionswebhook.Webhook, error){
+		admissionvalidator.NewShootValidatorWebhook,
+	}
+
+	for _, webhookFunc := range webhookFuncs {
+		webhook, err := webhookFunc(m)
+		if err != nil {
+			return fmt.Errorf("failed to create admission webhook: %w", err)
+		}
+		webhooks = append(webhooks, webhook)
+	}
+
+	extensionWebhookOpts := flags.getExtensionWebhookOpts()
+	if err := extensionWebhookOpts.Complete(); err != nil {
+		return err
+	}
+	extensionWebhookConfig := extensionWebhookOpts.Completed()
+	extensionWebhookConfig.Switch = extensionscmdwebhook.SwitchConfig{
+		Disabled: false,
+		WebhooksFactory: func(m manager.Manager) ([]*extensionswebhook.Webhook, error) {
+			return webhooks, nil
+		},
+	}
+
+	if _, err := extensionWebhookConfig.AddToManager(ctx, m, flags.sourceCluster); err != nil {
+		return fmt.Errorf("failed to setup extension webhook with manager: %w", err)
+	}
+
+	logger.Info("starting manager")
+
+	return m.Start(ctx)
 }
