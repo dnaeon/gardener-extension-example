@@ -23,27 +23,10 @@ import (
 	"gardener-extension-example/pkg/apis/config/validation"
 )
 
-// ErrInvalidShoot is an error, which is returned when an invalid shoot resource
-// was provided.
-var ErrInvalidShoot = errors.New("invalid shoot resource provided")
-
-// ErrExtensionNotFound is an error, which is returned when the extension spec
-// was not found.
-var ErrExtensionNotFound = errors.New("extension not found")
-
-// ErrInvalidExtensionConfig is an error, which is returned when the extension
-// configuration is found to be invalid.
-var ErrInvalidExtensionConfig = errors.New("invalid extension config")
-
-// ErrInvalidValidator is an error which is returned when creating an
-// [extensionswebhook.Validator] with invalid settings.
-var ErrInvalidValidator = errors.New("invalid validator")
-
 // shootValidator is an implementation of [extensionswebhook.Validator], which
 // validates the provider configuration of the extension from a [core.Shoot]
 // spec.
 type shootValidator struct {
-	reader        client.Reader
 	decoder       runtime.Decoder
 	extensionType string
 }
@@ -52,26 +35,20 @@ var _ extensionswebhook.Validator = &shootValidator{}
 
 // newShootValidator returns a new [extensionswebhook.Validator], which validates
 // the extension provider config.
-func newShootValidator(reader client.Reader, decoder runtime.Decoder) (*shootValidator, error) {
+func newShootValidator(decoder runtime.Decoder) (*shootValidator, error) {
 	validator := &shootValidator{
-		reader:        reader,
 		decoder:       decoder,
 		extensionType: actuator.ExtensionType,
 	}
 
-	if reader == nil {
-		return nil, fmt.Errorf("%w: no reader specified", ErrInvalidValidator)
-	}
-
 	if decoder == nil {
-		return nil, fmt.Errorf("%w: no decoder specified", ErrInvalidValidator)
+		return nil, fmt.Errorf("invalid decoder specified for shoot validator %s", validator.extensionType)
 	}
 
 	return validator, nil
 }
 
-// Validate implements the [extensionswebhook.Validator] interface. This method
-// validates the extension provider configuration from a [core.Shoot] spec.
+// Validate implements the [extensionswebhook.Validator] interface.
 func (v *shootValidator) Validate(ctx context.Context, newObj, oldObj client.Object) error {
 	newShoot, ok := newObj.(*core.Shoot)
 	if !ok {
@@ -82,6 +59,10 @@ func (v *shootValidator) Validate(ctx context.Context, newObj, oldObj client.Obj
 		oldShoot = nil
 	}
 
+	if newShoot.DeletionTimestamp != nil {
+		return nil
+	}
+
 	return v.validateExtension(newShoot, oldShoot)
 }
 
@@ -89,7 +70,7 @@ func (v *shootValidator) Validate(ctx context.Context, newObj, oldObj client.Obj
 // [core.Shoot] object.
 func (v *shootValidator) getExtension(obj *core.Shoot) (core.Extension, error) {
 	if obj == nil {
-		return core.Extension{}, ErrInvalidShoot
+		return core.Extension{}, errors.New("invalid shoot resource provided")
 	}
 
 	idx := slices.IndexFunc(obj.Spec.Extensions, func(ext core.Extension) bool {
@@ -97,7 +78,7 @@ func (v *shootValidator) getExtension(obj *core.Shoot) (core.Extension, error) {
 	})
 
 	if idx == -1 {
-		return core.Extension{}, ErrExtensionNotFound
+		return core.Extension{}, fmt.Errorf("extension %s not found in shoot spec", v.extensionType)
 	}
 
 	return obj.Spec.Extensions[idx], nil
@@ -117,16 +98,16 @@ func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) er
 	}
 
 	if ext.ProviderConfig == nil {
-		return fmt.Errorf("%w: no provider config specified", ErrInvalidExtensionConfig)
+		return fmt.Errorf("no provider config specified for %s", v.extensionType)
 	}
 
 	var cfg config.ExampleConfig
 	if err := runtime.DecodeInto(v.decoder, ext.ProviderConfig.Raw, &cfg); err != nil {
-		return fmt.Errorf("%w: invalid provider spec configuration: %w", ErrInvalidExtensionConfig, err)
+		return fmt.Errorf("invalid provider spec configuration for %s: %w", v.extensionType, err)
 	}
 
 	if err := validation.Validate(cfg); err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidExtensionConfig, err.Error())
+		return fmt.Errorf("invalid extension configuration for %s: %w", v.extensionType, err)
 	}
 
 	// TODO(user): additional validation checks
@@ -138,7 +119,7 @@ func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) er
 // [core.Shoot] objects.
 func NewShootWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	decoder := serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
-	validator, err := newShootValidator(mgr.GetAPIReader(), decoder)
+	validator, err := newShootValidator(decoder)
 	if err != nil {
 		return nil, err
 	}
