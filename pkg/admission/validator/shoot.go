@@ -134,9 +134,9 @@ func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) er
 	return nil
 }
 
-// NewShootValidatorWebhook returns a new [extensionswebhook.Webhook], which
-// validates extension configuration defined in a [core.Shoot] object.
-func NewShootValidatorWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
+// NewShootWebhook returns a new validating [extensionswebhook.Webhook] for
+// [core.Shoot] objects.
+func NewShootWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	decoder := serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
 	validator, err := newShootValidator(mgr.GetAPIReader(), decoder)
 	if err != nil {
@@ -145,7 +145,10 @@ func NewShootValidatorWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, 
 
 	name := fmt.Sprintf("validator.%s", validator.extensionType)
 	extensionLabel := fmt.Sprintf("extensions.extensions.gardener.cloud/%s", validator.extensionType)
-	path := "/webhooks/validate"
+	path := fmt.Sprintf("/webhooks/validate/%s", validator.extensionType)
+
+	logger := mgr.GetLogger()
+	logger.Info("setting up webhook", "name", name, "path", path, "label", extensionLabel)
 
 	args := extensionswebhook.Args{
 		Provider: validator.extensionType,
