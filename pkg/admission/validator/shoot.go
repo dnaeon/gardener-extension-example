@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"gardener-extension-example/pkg/actuator"
+	exampleactuator "gardener-extension-example/pkg/actuator/example"
 	"gardener-extension-example/pkg/apis/config"
 	"gardener-extension-example/pkg/apis/config/validation"
 )
@@ -38,7 +38,7 @@ var _ extensionswebhook.Validator = &shootValidator{}
 func newShootValidator(decoder runtime.Decoder) (*shootValidator, error) {
 	validator := &shootValidator{
 		decoder:       decoder,
-		extensionType: actuator.ExtensionType,
+		extensionType: exampleactuator.ExtensionType,
 	}
 
 	if decoder == nil {
