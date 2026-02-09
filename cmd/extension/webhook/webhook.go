@@ -16,20 +16,16 @@ import (
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	extensionscmdwebhook "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	gardencoreinstall "github.com/gardener/gardener/pkg/apis/core/install"
-	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	gardenerhealthz "github.com/gardener/gardener/pkg/healthz"
 	glogger "github.com/gardener/gardener/pkg/logger"
 	"github.com/go-logr/logr"
 	"github.com/urfave/cli/v3"
-	corev1 "k8s.io/api/core/v1"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	componentbaseconfigv1alpha1 "k8s.io/component-base/config/v1alpha1"
-	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/cluster"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -68,9 +64,6 @@ type flags struct {
 	webhookConfigOwnerNamespace string
 	gardenerVersion             string
 	selfHostedShootCluster      bool
-	sourceClusterEnable         string
-	sourceClusterKubeconfig     string
-	sourceClusterRestConfig     *rest.Config
 	sourceCluster               cluster.Cluster
 }
 
@@ -80,66 +73,9 @@ func (f *flags) getLogger() logr.Logger {
 	return glogger.MustNewZapLogger(f.zapLogLevel, f.zapLogFormat)
 }
 
-// gardenKubeconfigIsSet is a predicate which returns whether a kubeconfig for
-// the Garden cluster was set.
-//
-// The Garden cluster represents the target cluster, which the controller
-// manager will be operating on, e.g. watch, validate, and mutate resources.
-func (f *flags) gardenKubeconfigIsSet() bool {
-	return f.gardenKubeconfig != ""
-}
-
-// loadGardenKubeconfig loads the [rest.Config] of the target cluster against which
-// the controller manager runs.
-//
-// The target garden cluster config is specified via the `GARDEN_KUBECONFIG' env
-// var, which is captured in [flags.gardenKubeconfig].
-func (f *flags) loadGardenKubeconfig() (*rest.Config, error) {
-	if f.gardenKubeconfig == "" {
-		return nil, errors.New("no garden kubeconfig specified")
-	}
-
-	return clientcmd.BuildConfigFromFlags("", f.gardenKubeconfig)
-}
-
-// sourceClusterIsEnabled is a predicate, which returns whether a
-// `source cluster' has been enabled or not via the `SOURCE_CLUSTER' and
-// `SOURCE_KUBECONFIG' environment vars.
-//
-// The `SOURCE_CLUSTER' and `SOURCE_KUBECONFIG' env vars are captured in
-// [flags.sourceClusterEnable] and [flags.sourceClusterKubeconfig].
-func (f *flags) sourceClusterIsEnabled() bool {
-	return f.sourceClusterEnable == "enabled"
-}
-
-// loadSourceCluster loads the [rest.Config] and [cluster.Cluster] for the
-// source cluster.
-func (f *flags) loadSourceCluster() error {
-	if f.sourceClusterKubeconfig == "" {
-		return errors.New("no source cluster kubeconfig specified")
-	}
-
-	config, err := clientcmd.BuildConfigFromFlags("", f.sourceClusterKubeconfig)
-	if err != nil {
-		return fmt.Errorf("failed to load source cluster kubeconfig: %w", err)
-	}
-
-	sourceCluster, err := cluster.New(config, func(opts *cluster.Options) {
-		opts.Logger = f.getLogger()
-		opts.Cache.DefaultNamespaces = map[string]cache.Config{v1beta1constants.GardenNamespace: {}}
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create a new source cluster from config: %w", err)
-	}
-
-	f.sourceCluster = sourceCluster
-	f.sourceClusterRestConfig = config
-
-	return nil
-}
-
 // getManager creates a new [ctrl.Manager] based on the parsed [flags].
 func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
+	logger := f.getLogger()
 	webhookOpts := webhook.Options{
 		Host:     f.webhookServerHost,
 		Port:     f.webhookServerPort,
@@ -149,8 +85,47 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 	}
 	webhookServer := webhook.NewServer(webhookOpts)
 
+	// Gardener extension webhooks are usually deployed in one Kubernetes
+	// cluster, called `source cluster' here, and are validating/mutating
+	// resources located in another cluster, called `target cluster' here.
+	//
+	// The controller manager serving the extension webhooks will be
+	// configured to use the `source cluster' for leader election, as well
+	// as storing required TLS secrets for the webhook server. TLS secrets
+	// are managed by a separate reconciler, which is installed by the
+	// Gardener extension webhook utility package.
+	//
+	// Since admission webhooks are deployed in the `runtime cluster', then
+	// the `source cluster' is the runtime cluster itself.
+	//
+	// The `target cluster' is the (virtual) Garden cluster, where resources
+	// validated/mutated by webhooks reside.
+	sourceClusterConfig, err := config.GetConfig()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load source cluster config: %w", err)
+	}
+
+	sourceCluster, err := cluster.New(sourceClusterConfig, func(opts *cluster.Options) {
+		opts.Logger = logger
+		opts.Cache.DefaultNamespaces = map[string]cache.Config{f.webhookConfigNamespace: {}}
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create source cluster from config: %w", err)
+	}
+	// Persist the source cluster, since we will need it later when
+	// registering our webhooks with the Gardener extension webhook utility
+	// package.
+	f.sourceCluster = sourceCluster
+
+	targetClusterConfig, err := clientcmd.BuildConfigFromFlags("", f.gardenKubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load garden cluster config: %w", err)
+	}
+
+	// Base set of controller manager options
 	managerOpts := []mgr.Option{
 		mgr.WithContext(ctx),
+		mgr.WithConfig(targetClusterConfig),
 		mgr.WithAddToScheme(clientgoscheme.AddToScheme),
 		mgr.WithInstallScheme(gardencoreinstall.Install),
 		mgr.WithInstallScheme(configinstall.Install),
@@ -159,6 +134,7 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		mgr.WithLeaderElection(f.leaderElection),
 		mgr.WithLeaderElectionID(f.leaderElectionID),
 		mgr.WithLeaderElectionNamespace(f.leaderElectionNamespace),
+		mgr.WithLeaderElectionConfig(sourceClusterConfig),
 		mgr.WithHealthzCheck("healthz", healthz.Ping),
 		mgr.WithReadyzCheck("readyz", healthz.Ping),
 		mgr.WithPprofAddress(f.pprofBindAddr),
@@ -168,79 +144,13 @@ func (f *flags) getManager(ctx context.Context) (ctrl.Manager, error) {
 		}),
 		mgr.WithWebhookServer(webhookServer),
 		mgr.WithReadyzCheck("webhook-server", webhookServer.StartedChecker()),
-	}
-
-	// When the `SOURCE_CLUSTER' env var is set to `enabled', which is
-	// captured in [flags.sourceClusterEnable], then we need to load the
-	// kubeconfig referenced by the `SOURCE_KUBECONFIG' env var, which is
-	// captured in [flags.sourceClusterKubeconfig].
-	//
-	// The [rest.Config] we get after successfully loading
-	// `SOURCE_KUBECONFIG' will be used in order to configure the controller
-	// manager leader election settings. The same [rest.Config] is used by
-	// Gardener's certificate controller for managing and rotating
-	// certificate secrets for the webhook server.
-	//
-	// When no SOURCE_CLUSTER is specified the source cluster is configured
-	// via in-cluster configuration.
-	//
-	// Usually the source cluster for admission webhooks is the runtime
-	// cluster, which is where the admission webhooks are also deployed.
-	//
-	// The resources with which the admission webhooks work, however, might
-	// be located in a separate cluster, called a target cluster.
-	//
-	// For example an admission webhook running in the runtime cluster and
-	// validating shoot resources, will be configured with:
-	//
-	// a) source cluster being the runtime cluster itself (unless SOURCE_CLUSTER and SOURCE_KUBECONFIG are set)
-	// b) target cluster being the virtual cluster, where shoots reside
-	if f.sourceClusterIsEnabled() {
-		managerOpts = append(
-			managerOpts,
-			mgr.WithLeaderElectionConfig(f.sourceClusterRestConfig),
-			mgr.WithHealthzCheck("source-informer-sync", gardenerhealthz.NewCacheSyncHealthzWithDeadline(f.getLogger(), clock.RealClock{}, f.sourceCluster.GetCache(), gardenerhealthz.DefaultCacheSyncDeadline)),
-			mgr.WithReadyzCheck("source-informer-sync", gardenerhealthz.NewCacheSyncHealthz(f.sourceCluster.GetCache())),
-			mgr.WithRunnable(f.sourceCluster),
-		)
-	} else {
-		// When we don't have a `SOURCE_CLUSTER', we fallback to
-		// in-cluster configuration. Also, restrict the cache for
-		// secrets to the configured namespace in order to avoid the
-		// need for cluster-wide list/watch permissions.
-		cacheOpts := cache.Options{
-			ByObject: map[client.Object]cache.ByObject{
-				&corev1.Secret{}: {
-					Namespaces: map[string]cache.Config{
-						f.webhookConfigNamespace: {},
-					},
-				},
-			},
-		}
-		managerOpts = append(managerOpts, mgr.WithCacheOptions(cacheOpts))
-	}
-
-	// When a `GARDEN_KUBECONFIG' is specified we need to load the
-	// [rest.Config] referenced by it.
-	//
-	// The controller manager will be configured to use this [rest.Config],
-	// so that watching, validating, and mutating resources will happen
-	// against the target cluster referenced by the loaded [rest.Config].
-	if f.gardenKubeconfigIsSet() {
-		targetConfig, err := f.loadGardenKubeconfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to load garden kubeconfig: %w", err)
-		}
-		managerOpts = append(managerOpts, mgr.WithConfig(targetConfig))
+		mgr.WithReadyzCheck("source-informer-sync", gardenerhealthz.NewCacheSyncHealthz(sourceCluster.GetCache())),
+		mgr.WithRunnable(sourceCluster),
 	}
 
 	m, err := mgr.New(managerOpts...)
 	if err != nil {
 		return nil, err
-	}
-
-	if err := m.AddHealthzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthzWithDeadline(m.GetLogger(), clock.RealClock{}, m.GetCache(), gardenerhealthz.DefaultCacheSyncDeadline)); err != nil {
-		return nil, fmt.Errorf("failed to setup health check: %w", err)
 	}
 
 	if err := m.AddReadyzCheck("informer-sync", gardenerhealthz.NewCacheSyncHealthz(m.GetCache())); err != nil {
@@ -360,6 +270,7 @@ func New() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:        "garden-kubeconfig",
+				Required:    true,
 				Aliases:     []string{"target-kubeconfig"},
 				Usage:       "path to a kubeconfig for the garden cluster",
 				Sources:     cli.EnvVars("GARDEN_KUBECONFIG"),
@@ -452,6 +363,7 @@ func New() *cli.Command {
 			},
 			&cli.StringFlag{
 				Name:        "webhook-config-namespace",
+				Value:       "garden",
 				Usage:       "namespace where the webhook CA bundle, services, etc. are created",
 				Sources:     cli.EnvVars("WEBHOOK_CONFIG_NAMESPACE"),
 				Destination: &flags.webhookConfigNamespace,
@@ -505,28 +417,10 @@ func New() *cli.Command {
 				Sources:     cli.EnvVars("WEBHOOK_CONFIG_OWNER_NAMESPACE"),
 				Destination: &flags.webhookConfigOwnerNamespace,
 			},
-			&cli.StringFlag{
-				Name:        "source-cluster",
-				Usage:       "specifies whether the `source cluster' is enabled or not",
-				Sources:     cli.EnvVars("SOURCE_CLUSTER"),
-				Destination: &flags.sourceClusterEnable,
-			},
-			&cli.StringFlag{
-				Name:        "source-cluster-kubeconfig",
-				Usage:       "path to the kubeconfig for the `source cluster'",
-				Sources:     cli.EnvVars("SOURCE_KUBECONFIG"),
-				Destination: &flags.sourceClusterKubeconfig,
-			},
 		},
 		Before: func(ctx context.Context, c *cli.Command) (context.Context, error) {
 			ctrllog.SetLogger(flags.getLogger())
 			newCtx := context.WithValue(ctx, flagsKey{}, &flags)
-
-			if flags.sourceClusterIsEnabled() {
-				if err := flags.loadSourceCluster(); err != nil {
-					return nil, err
-				}
-			}
 
 			return newCtx, nil
 		},
