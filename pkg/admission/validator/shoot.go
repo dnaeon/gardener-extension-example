@@ -33,8 +33,8 @@ type shootValidator struct {
 
 var _ extensionswebhook.Validator = &shootValidator{}
 
-// newShootValidator returns a new [extensionswebhook.Validator], which validates
-// the extension provider config.
+// newShootValidator returns a new [shootValidator], which implements the
+// [extensionswebhook.Validator] interface.
 func newShootValidator(decoder runtime.Decoder) (*shootValidator, error) {
 	validator := &shootValidator{
 		decoder:       decoder,
@@ -46,6 +46,12 @@ func newShootValidator(decoder runtime.Decoder) (*shootValidator, error) {
 	}
 
 	return validator, nil
+}
+
+// NewShootValidator returns a new [extensionswebhook.Validator] for
+// [core.Shoot] objects.
+func NewShootValidator(decoder runtime.Decoder) (extensionswebhook.Validator, error) {
+	return newShootValidator(decoder)
 }
 
 // Validate implements the [extensionswebhook.Validator] interface.
@@ -115,9 +121,9 @@ func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) er
 	return nil
 }
 
-// NewShootWebhook returns a new validating [extensionswebhook.Webhook] for
-// [core.Shoot] objects.
-func NewShootWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
+// NewShootValidatorWebhook returns a new validating [extensionswebhook.Webhook]
+// for [core.Shoot] objects.
+func NewShootValidatorWebhook(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 	decoder := serializer.NewCodecFactory(mgr.GetScheme(), serializer.EnableStrict).UniversalDecoder()
 	validator, err := newShootValidator(decoder)
 	if err != nil {
