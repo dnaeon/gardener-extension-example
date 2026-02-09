@@ -129,8 +129,8 @@ api-ref-docs:
 .PHONY: build
 build: $(BINARY)  ## Build the extension binary.
 
-.PHONY: clean  ## Clean up binary and test utils.
-clean:
+.PHONY: clean
+clean:  ## Clean up binary and test utils.
 	rm -f $(BINARY)
 	$(GO_TOOL) setup-envtest --bin-dir $(LOCAL_BIN) cleanup
 

@@ -1,6 +1,7 @@
 # gardener-extension-example
 
-The `gardener-extension-example` repo provides the skeleton for an example Gardener extension.
+The `gardener-extension-example` repo provides a skeleton for an example
+Gardener extension.
 
 # Requirements
 
@@ -13,20 +14,21 @@ The `gardener-extension-example` repo provides the skeleton for an example Garde
 
 The project repo uses the following code structure.
 
-| Package           | Description                                                                              |
-|-------------------|------------------------------------------------------------------------------------------|
-| `cmd`             | Command-line application of the extension                                                |
-| `pkg/apis`        | Extension API types, e.g. configuration spec, etc.                                       |
-| `pkg/actuator`    | Implementations for the Gardener Extension Actuator interfaces                           |
-| `pkg/controller`  | Utility wrappers for creating Kubernetes reconcilers for Gardener Actuators              |
-| `pkg/heartbeat`   | Utility wrappers for creating heartbeat reconcilers for Gardener extensions              |
-| `pkg/metrics`     | Metrics emitted by the extension                                                         |
-| `pkg/mgr`         | Utility wrappers for creating `controller-runtime` managers using functional options API |
-| `pkg/version`     | Version metadata information about the extension                                         |
-| `internal/tools`  | Go-based tools used for testing and linting the project                                  |
-| `charts`          | Helm charts for deploying the extension                                                  |
-| `examples`        | Example Kubernetes resources, which can be used in a dev environment                     |
-| `test`            | Various files (e.g. schemas, CRDs, etc.), used during testing                            |
+| Package          | Description                                                                               |
+|------------------|-------------------------------------------------------------------------------------------|
+| `cmd`            | Command-line application of the extension                                                 |
+| `pkg/admission`  | Implementations for the Gardener extension admission `Validator` and `Mutator` interfaces |
+| `pkg/apis`       | Extension API types, e.g. configuration spec, etc.                                        |
+| `pkg/actuator`   | Implementations for the Gardener Extension `Actuator` interfaces                          |
+| `pkg/controller` | Utility wrappers for creating Kubernetes reconcilers for Gardener `Actuators`             |
+| `pkg/heartbeat`  | Utility wrappers for creating heartbeat reconcilers for Gardener extensions               |
+| `pkg/metrics`    | Metrics emitted by the extension                                                          |
+| `pkg/mgr`        | Utility wrappers for creating `controller-runtime` managers using functional options API  |
+| `pkg/version`    | Version metadata information about the extension                                          |
+| `internal/tools` | Go-based tools used for testing and linting the project                                   |
+| `charts`         | Helm charts for deploying the extension                                                   |
+| `examples`       | Example Kubernetes resources, which can be used in a dev environment                      |
+| `test`           | Various files (e.g. schemas, CRDs, etc.), used during testing                             |
 
 # Usage
 
@@ -62,6 +64,13 @@ command.
 
 ``` shell
 make docker-build
+```
+
+Run the following command to get usage info about the available Makefile
+targets.
+
+``` shell
+make help
 ```
 
 For local development of the `gardener-extension-example` it is recommended that
