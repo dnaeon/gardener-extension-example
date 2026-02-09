@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package actuator_test
+package example_test
 
 import (
 	"encoding/json"
@@ -19,7 +19,7 @@ import (
 	"k8s.io/component-base/featuregate"
 	"k8s.io/utils/ptr"
 
-	"gardener-extension-example/pkg/actuator"
+	exampleactuator "gardener-extension-example/pkg/actuator/example"
 	"gardener-extension-example/pkg/apis/config"
 )
 
@@ -33,7 +33,7 @@ var _ = Describe("Actuator", Ordered, func() {
 		decoder     = serializer.NewCodecFactory(scheme.Scheme, serializer.EnableStrict).UniversalDecoder()
 
 		featureGates   = make(map[featuregate.Feature]bool)
-		actuatorOpts   []actuator.Option
+		actuatorOpts   []exampleactuator.Option
 		providerConfig = config.ExampleConfig{
 			Spec: config.ExampleConfigSpec{
 				Foo: "bar",
@@ -89,10 +89,10 @@ var _ = Describe("Actuator", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		actuatorOpts = []actuator.Option{
-			actuator.WithGardenerVersion("1.0.0"),
-			actuator.WithDecoder(decoder),
-			actuator.WithGardenletFeatures(featureGates),
+		actuatorOpts = []exampleactuator.Option{
+			exampleactuator.WithGardenerVersion("1.0.0"),
+			exampleactuator.WithDecoder(decoder),
+			exampleactuator.WithGardenletFeatures(featureGates),
 		}
 
 		// Serialize our test objects, so we can later re-use them.
@@ -118,7 +118,7 @@ var _ = Describe("Actuator", Ordered, func() {
 			},
 			Spec: extensionsv1alpha1.ExtensionSpec{
 				DefaultSpec: extensionsv1alpha1.DefaultSpec{
-					Type:  actuator.ExtensionType,
+					Type:  exampleactuator.ExtensionType,
 					Class: ptr.To(extensionsv1alpha1.ExtensionClassShoot),
 				},
 			},
@@ -149,13 +149,13 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should successfully create an actuator", func() {
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
-		Expect(act.Name()).To(Equal(actuator.Name))
-		Expect(act.ExtensionType()).To(Equal(actuator.ExtensionType))
-		Expect(act.FinalizerSuffix()).To(Equal(actuator.FinalizerSuffix))
+		Expect(act.Name()).To(Equal(exampleactuator.Name))
+		Expect(act.ExtensionType()).To(Equal(exampleactuator.ExtensionType))
+		Expect(act.FinalizerSuffix()).To(Equal(exampleactuator.FinalizerSuffix))
 		Expect(act.ExtensionClass()).To(Equal(extensionsv1alpha1.ExtensionClassShoot))
 	})
 
@@ -164,7 +164,7 @@ var _ = Describe("Actuator", Ordered, func() {
 		// non-existing cluster is looked up.
 		extResource.Namespace = "non-existing-namespace"
 
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		err = act.Reconcile(ctx, logger, extResource)
@@ -173,7 +173,7 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should fail to reconcile without provider config", func() {
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 
@@ -188,7 +188,7 @@ var _ = Describe("Actuator", Ordered, func() {
 			Raw: providerConfigData,
 		}
 
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		Expect(act.Reconcile(ctx, logger, extResource)).To(Succeed())
@@ -197,7 +197,7 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should succeed on Delete", func() {
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		Expect(act.Delete(ctx, logger, extResource)).To(Succeed())
@@ -206,7 +206,7 @@ var _ = Describe("Actuator", Ordered, func() {
 	})
 
 	It("should succeed on ForceDelete", func() {
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		Expect(act.ForceDelete(ctx, logger, extResource)).To(Succeed())
@@ -220,7 +220,7 @@ var _ = Describe("Actuator", Ordered, func() {
 			Raw: providerConfigData,
 		}
 
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		Expect(act.Restore(ctx, logger, extResource)).To(Succeed())
@@ -234,7 +234,7 @@ var _ = Describe("Actuator", Ordered, func() {
 			Raw: providerConfigData,
 		}
 
-		act, err := actuator.New(k8sClient, actuatorOpts...)
+		act, err := exampleactuator.New(k8sClient, actuatorOpts...)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(act).NotTo(BeNil())
 		Expect(act.Migrate(ctx, logger, extResource)).To(Succeed())

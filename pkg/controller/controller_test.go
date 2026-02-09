@@ -18,15 +18,15 @@ import (
 	crctrl "sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"gardener-extension-example/pkg/actuator"
+	exampleactuator "gardener-extension-example/pkg/actuator/example"
 	"gardener-extension-example/pkg/controller"
 )
 
 var _ = Describe("Controller", Ordered, func() {
-	var act *actuator.Actuator
+	var act *exampleactuator.Actuator
 
 	BeforeAll(func() {
-		a, err := actuator.New(k8sClient)
+		a, err := exampleactuator.New(k8sClient)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(a).NotTo(BeNil())
 		act = a

@@ -4,7 +4,7 @@
 
 // Package actuator provides the implementation of a Gardener extension
 // actuator.
-package actuator
+package example
 
 import (
 	"context"
