@@ -26,7 +26,7 @@ extension:
   # Metrics settings
   metrics:
     # Set to false in order to disable scraping from Prometheus.
-    enable_scraping: true
+    enable_scraping: false
     # Metrics server will bind to this address. Set this value to 0 in order to
     # disable metrics server.
     bind_address: ":8080"
@@ -43,7 +43,6 @@ extension:
   # Webhook server settings
   webhook:
     port: 8088
-
 # Extra values provided by gardenlet / gardener-operator during deployment.
 #
 # See the links below for more details.
@@ -58,7 +57,6 @@ gardener:
     enabled: true
   runtimeCluster:
     priorityClassName: gardener-garden-system-400
-
 # ServiceAccount settings.
 #
 # The name of the service account is derived from the .Values.extension.name
@@ -78,7 +76,7 @@ serviceAccount:
 #
 # https://kubernetes.io/docs/concepts/containers/images/
 image:
-  repository: registry.local.gardener.cloud:5001/extensions/gardener-extension-example-admission-runtime
+  repository: registry.local.gardener.cloud:5001/extensions/gardener-extension-example
   # This sets the pull policy for images.
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
@@ -117,7 +115,11 @@ securityContext:
   capabilities:
     drop:
       - ALL
-  readOnlyRootFilesystem: true
+
+  # The Gardener Secrets Manager will dump the TLS secrets for the webhook
+  # server on the filesystem, so make sure that we don't run with read-only
+  # root filesystem.
+  readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1000
 # Service settings.

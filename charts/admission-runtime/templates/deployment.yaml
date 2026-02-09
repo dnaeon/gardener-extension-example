@@ -56,6 +56,7 @@ spec:
             - --health-probe-bind-address={{ .Values.extension.health.bind_address }}
             - --leader-election={{ .Values.extension.leader_election.enabled }}
             - --leader-election-id={{ .Values.extension.leader_election.election_id }}
+            - --leader-election-namespace={{ .Release.Namespace }}
             - --log-level={{ .Values.extension.logging.level }}
             - --log-format={{ .Values.extension.logging.format }}
             - --client-conn-qps={{ .Values.extension.manager.qps }}
@@ -69,9 +70,6 @@ spec:
             - --webhook-config-mode=service
             {{- end}}
             - --webhook-config-namespace={{ .Release.Namespace }}
-          env:
-            - name: SOURCE_CLUSTER
-              value: enabled
           {{- with .Values.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}
