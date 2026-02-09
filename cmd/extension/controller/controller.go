@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"gardener-extension-example/pkg/actuator"
+	exampleactuator "gardener-extension-example/pkg/actuator/example"
 	configinstall "gardener-extension-example/pkg/apis/config/install"
 	"gardener-extension-example/pkg/controller"
 	"gardener-extension-example/pkg/heartbeat"
@@ -130,9 +130,9 @@ func New() *cli.Command {
 	}
 
 	cmd := &cli.Command{
-		Name:    "manager",
-		Aliases: []string{"m"},
-		Usage:   "start controller manager",
+		Name:    "controller",
+		Aliases: []string{"c"},
+		Usage:   "start extension controller manager",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:        "extension-name",
@@ -319,11 +319,11 @@ func runManager(ctx context.Context, cmd *cli.Command) error {
 
 	logger.Info("creating actuators")
 	decoder := serializer.NewCodecFactory(m.GetScheme(), serializer.EnableStrict).UniversalDecoder()
-	act, err := actuator.New(
+	act, err := exampleactuator.New(
 		m.GetClient(),
-		actuator.WithDecoder(decoder),
-		actuator.WithGardenerVersion(flags.gardenerVersion),
-		actuator.WithGardenletFeatures(flags.gardenletFeatureGates),
+		exampleactuator.WithDecoder(decoder),
+		exampleactuator.WithGardenerVersion(flags.gardenerVersion),
+		exampleactuator.WithGardenletFeatures(flags.gardenletFeatureGates),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create actuator: %w", err)
