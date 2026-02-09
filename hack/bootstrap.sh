@@ -123,6 +123,7 @@ function _bootstrap_project {
         "${_src_path}/" "${_dst_path}"
 
   _msg_info "Fixing Go modules and packages ..."
+  mv "${_dst_path}/pkg/actuator/example" "${_dst_path}/pkg/actuator/${ACTUATOR_NAME}"
   sed -i'' -e "s|gardener-extension-example|${EXTENSION_REPO}|g" "${_dst_path}/go.mod"
   sed -i'' -e "s|gardener-extension-example|${EXTENSION_REPO}|g" "${_dst_path}/internal/tools/go.mod"
 
@@ -141,6 +142,12 @@ function _bootstrap_project {
          -e "s|Value:\s*\"gardener-extension-example-leader-election\"|Value: \"${EXTENSION_NAME}-leader-election\"|g" \
          -e "s|ExtensionType = \"example\"|ExtensionType = \"${EXTENSION_TYPE}\"|g" \
          -e "s|FinalizerSuffix = \"gardener-extension-example\"|FinalizerSuffix = \"${EXTENSION_NAME}\"|g" \
+         -e "s|exampleactuator|${EXTENSION_TYPE}actuator|g" \
+         -e "s|ExampleConfig|${EXTENSION_TYPE^}Config|g" \
+         -e "s|package example|package ${ACTUATOR_NAME}|g" \
+         -e "s|gardener-extension-example/pkg/actuator/example|${EXTENSION_REPO}/pkg/actuator/${ACTUATOR_NAME}|g" \
+         -e "s|Name:\s*\"example\",|Name: \"${EXTENSION_TYPE}\",|g" \
+         -e "s|Value:\s*\"gardener-extension-example-admission\"|Value: \"${EXTENSION_NAME}-admission\"|g" \
          -e "s|gardener-extension-example|${EXTENSION_REPO}|g" {} \;
 
   _msg_info "Fixing README ..."
@@ -153,7 +160,8 @@ function _bootstrap_project {
       -e "s|annotate extensions example gardener.cloud/operation=reconcile$|annotate extensions ${EXTENSION_TYPE} gardener.cloud/operation=reconcile|g" \
       -e "s|Extension/example\s*40s$|Extension/${EXTENSION_TYPE}   40s|g" \
       -e "s|Extension/example\s*3m50s|Extension/${EXTENSION_TYPE}  3m50s|g" \
-      -e "s|repo provides the skeleton for an example Gardener extension.$|repo provides ${EXTENSION_DESC}.|g" \
+      -e "s|repo provides a skeleton for an example Gardener extension.$|repo provides ${EXTENSION_DESC}.|g" \
+      -e "s|ExampleConfig|${EXTENSION_TYPE^}Config|g" \
       "${_dst_path}/README.md"
 
   sed -i'' '/BOOTSTRAP_DELETE_START/,/BOOTSTRAP_DELETE_END/d' \
@@ -165,9 +173,10 @@ function _bootstrap_project {
       "${_dst_path}/Makefile"
 
   _msg_info "Fixing example manifests ..."
-  env ext_type="${EXTENSION_TYPE}" api_version="${EXTENSION_TYPE}.extensions.gardener.cloud/v1alpha1" \
+  env ext_type="${EXTENSION_TYPE}" api_version="${EXTENSION_TYPE}.extensions.gardener.cloud/v1alpha1" api_type="${EXTENSION_TYPE^}Config" \
       go tool -modfile "${_TOOLS_MOD_FILE}" \
-        yq -i '(.spec.extensions[0].type = env(ext_type)) | (.spec.extensions[0].providerConfig.apiVersion = env(api_version))' \
+        yq -i '(.spec.extensions[0].type = env(ext_type)) | (.spec.extensions[0].providerConfig.apiVersion = env(api_version)) |
+               (.spec.extensions[0].providerConfig.kind = env(api_type))' \
           "${_dst_path}/examples/shoot.yaml"
 
   env ext_type="${EXTENSION_TYPE}" \

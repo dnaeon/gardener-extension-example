@@ -18,7 +18,7 @@ type ExampleConfigSpec struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ExampleConfig is the schema for the exampleconfigs API
+// ExampleConfig is the schema for the API
 type ExampleConfig struct {
 	metav1.TypeMeta
 

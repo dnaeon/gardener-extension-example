@@ -214,7 +214,7 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:        "extension-name",
 				Usage:       "name of the gardener extension",
-				Value:       "gardener-extension-example-admission", // TODO: use the constants
+				Value:       "gardener-extension-example-admission",
 				Sources:     cli.EnvVars("EXTENSION_NAME"),
 				Destination: &flags.extensionName,
 			},
@@ -248,14 +248,14 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:        "leader-election-id",
 				Usage:       "the leader election id to use, if leader election is enabled",
-				Value:       "gardener-extension-example-admission", // TODO: use the constant
+				Value:       "gardener-extension-example-admission",
 				Sources:     cli.EnvVars("LEADER_ELECTION_ID"),
 				Destination: &flags.leaderElectionID,
 			},
 			&cli.StringFlag{
 				Name:        "leader-election-namespace",
 				Usage:       "namespace to use for the leader election lease",
-				Value:       "gardener-extension-example", // TODO: constant
+				Value:       "gardener-extension-example",
 				Sources:     cli.EnvVars("LEADER_ELECTION_NAMESPACE"),
 				Destination: &flags.leaderElectionNamespace,
 			},

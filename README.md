@@ -1,7 +1,6 @@
 # gardener-extension-example
 
-The `gardener-extension-example` repo provides a skeleton for an example
-Gardener extension.
+The `gardener-extension-example` repo provides a skeleton for an example Gardener extension.
 
 # Requirements
 
