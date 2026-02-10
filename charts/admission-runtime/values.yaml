@@ -115,7 +115,6 @@ securityContext:
   capabilities:
     drop:
       - ALL
-
   # The Gardener Secrets Manager will dump the TLS secrets for the webhook
   # server on the filesystem, so make sure that we don't run with read-only
   # root filesystem.
