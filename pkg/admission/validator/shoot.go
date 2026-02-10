@@ -23,6 +23,20 @@ import (
 	"gardener-extension-example/pkg/apis/config/validation"
 )
 
+// ErrExtensionNotFound is an error, which is returned when the extension was
+// not found in the [core.Shoot] spec.
+var ErrExtensionNotFound = errors.New("extension not found")
+
+// IgnoreExtensionNotFound returns nil if err is [ErrExtensionNotFound],
+// otherwise it returns err.
+func IgnoreExtensionNotFound(err error) error {
+	if errors.Is(err, ErrExtensionNotFound) {
+		return nil
+	}
+
+	return err
+}
+
 // shootValidator is an implementation of [extensionswebhook.Validator], which
 // validates the provider configuration of the extension from a [core.Shoot]
 // spec.
@@ -84,7 +98,7 @@ func (v *shootValidator) getExtension(obj *core.Shoot) (core.Extension, error) {
 	})
 
 	if idx == -1 {
-		return core.Extension{}, fmt.Errorf("extension %s not found in shoot spec", v.extensionType)
+		return core.Extension{}, fmt.Errorf("%w: %s", ErrExtensionNotFound, v.extensionType)
 	}
 
 	return obj.Spec.Extensions[idx], nil
@@ -95,7 +109,7 @@ func (v *shootValidator) getExtension(obj *core.Shoot) (core.Extension, error) {
 func (v *shootValidator) validateExtension(newObj *core.Shoot, _ *core.Shoot) error {
 	ext, err := v.getExtension(newObj)
 	if err != nil {
-		return err
+		return IgnoreExtensionNotFound(err)
 	}
 
 	// Extension is disabled, nothing to validate
