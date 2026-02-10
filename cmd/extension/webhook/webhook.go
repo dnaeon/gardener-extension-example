@@ -450,11 +450,11 @@ func runWebhookServer(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	for _, webhookFunc := range webhookFuncs {
-		webhook, err := webhookFunc(m)
+		wh, err := webhookFunc(m)
 		if err != nil {
 			return fmt.Errorf("failed to create admission webhook: %w", err)
 		}
-		webhooks = append(webhooks, webhook)
+		webhooks = append(webhooks, wh)
 	}
 
 	extensionWebhookOpts := flags.getExtensionWebhookOpts()
