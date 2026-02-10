@@ -95,7 +95,6 @@ endef
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
-
 $(LOCAL_BIN):
 	mkdir -p $(LOCAL_BIN)
 
@@ -104,20 +103,21 @@ $(BINARY): $(SRC_DIRS) | $(LOCAL_BIN)
 		-o $(LOCAL_BIN)/ \
 		-ldflags="-X '$(GO_MODULE)/pkg/version.Version=${VERSION}'" \
 		./cmd/extension
+
 .PHONY: goimports-reviser
-goimports-reviser:
+goimports-reviser:  ## Run goimports-reviser.
 	@$(GO_TOOL) goimports-reviser -set-exit-status -rm-unused ./...
 
 .PHONY: lint
-lint:
+lint:  ## Run linters.
 	@$(GO_TOOL) golangci-lint run --config=$(SRC_ROOT)/.golangci.yaml ./...
 
 .PHONY: govulncheck
-govulncheck:
+govulncheck:  ## Run vulnerability scan.
 	@$(GO_TOOL) govulncheck -show verbose ./...
 
 .PHONY: api-ref-docs
-api-ref-docs:
+api-ref-docs:  ## Generate API reference docs.
 	@mkdir -p $(API_REF_DOCS)
 	@$(GO_TOOL) crd-ref-docs \
 		--config $(SRC_ROOT)/api-ref-docs.yaml \
@@ -139,12 +139,12 @@ run: $(BINARY)  ## Run the extension binary.
 	$(BINARY) manager
 
 .PHONY: get
-get:
+get:  ## Download Go modules and run go mod tidy.
 	@$(GOCMD) mod download
 	@$(GOCMD) mod tidy
 
 .PHONY: gotidy
-gotidy:
+gotidy:  ## Run go mod tidy in main and tools modules.
 	@$(GOCMD) mod tidy
 	@cd $(TOOLS_MOD_DIR) && $(GOCMD) mod tidy
 
@@ -181,7 +181,7 @@ docker-push:  ## Push the extension Docker image.
 	@docker push --quiet $(IMAGE):latest
 
 .PHONY: update-tools
-update-tools:
+update-tools:  ## Update Go tools.
 	$(GOCMD) get -u -modfile $(TOOLS_MOD_FILE) tool
 
 .PHONY: addlicense
@@ -189,7 +189,7 @@ addlicense:  ## Add license headers to all source files.
 	@$(GO_TOOL) addlicense $(ADDLICENSE_OPTS) .
 
 .PHONY: checklicense
-checklicense:
+checklicense:  ## Check source files for license headers.
 	@files=$$( $(GO_TOOL) addlicense -check $(ADDLICENSE_OPTS) .) || { \
 		echo "Missing license headers in the following files:"; \
 		echo "$${files}"; \
@@ -273,7 +273,7 @@ update-version-tags:  ## Update version tags in helm charts and example resource
 deploy deploy-operator: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
 
 .PHONY: deploy
-deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Generate and deploy the extension.
+deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster.
 	@env WITH_GARDENER_OPERATOR=false EXTENSION_IMAGE=$(IMAGE):$(VERSION) $(HACK_DIR)/deploy-dev-setup.sh
 
 .PHONY: undeploy
@@ -282,7 +282,7 @@ undeploy:  ## Cleanup the deployed extension.
 		kubectl delete --ignore-not-found=true -f -
 
 .PHONY: deploy-operator
-deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy the operator extension.
+deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster with Gardener Operator.
 	@env WITH_GARDENER_OPERATOR=true EXTENSION_IMAGE=$(IMAGE):$(VERSION) $(HACK_DIR)/deploy-dev-setup.sh
 
 .PHONY: undeploy-operator
