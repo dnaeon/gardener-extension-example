@@ -7,6 +7,7 @@ package validator_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	"github.com/gardener/gardener/pkg/apis/core"
@@ -68,6 +69,11 @@ var _ = Describe("Shoot Validator", Ordered, func() {
 		}
 	})
 
+	It("IgnoreNotFound should ignore ErrExtensionNotFound errors", func() {
+		Expect(validator.IgnoreExtensionNotFound(validator.ErrExtensionNotFound)).NotTo(HaveOccurred())
+		Expect(validator.IgnoreExtensionNotFound(errors.New("an error"))).To(MatchError(ContainSubstring("an error")))
+	})
+
 	It("should successfully validate provider config", func() {
 		// Ensure we have the extension enabled with proper provider config
 		shoot.Spec.Extensions = []core.Extension{
@@ -87,9 +93,8 @@ var _ = Describe("Shoot Validator", Ordered, func() {
 		Expect(err).To(MatchError(ContainSubstring("invalid decoder specified")))
 	})
 
-	It("should fail to validate when extension is not defined", func() {
-		err := shootValidator.Validate(ctx, shoot, nil)
-		Expect(err).To(MatchError(ContainSubstring("not found in shoot spec")))
+	It("should successfully validate when extension is not defined or enabled", func() {
+		Expect(shootValidator.Validate(ctx, shoot, nil)).NotTo(HaveOccurred())
 	})
 
 	It("should fail to validate when extension provider config is not defined", func() {
