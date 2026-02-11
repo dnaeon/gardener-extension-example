@@ -371,7 +371,7 @@ func New() *cli.Command {
 			&cli.StringFlag{
 				Name:    "webhook-config-mode",
 				Value:   string(extensionswebhook.ModeService),
-				Usage:   "one of `service', `url' or `url-service'",
+				Usage:   "one of service, url or url-service",
 				Sources: cli.EnvVars("WEBHOOK_CONFIG_MODE"),
 				Validator: func(val string) error {
 					supportedModes := []string{
