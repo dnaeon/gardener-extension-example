@@ -279,7 +279,7 @@ deploy: generate update-version-tags docker-build docker-push helm-load-chart  #
 .PHONY: undeploy
 undeploy:  ## Cleanup the deployed extension.
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
-		kubectl delete --ignore-not-found=true -f -
+		kubectl delete --ignore-not-found=true --wait=false -f -
 
 .PHONY: deploy-operator
 deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster with Gardener Operator.
@@ -288,4 +288,4 @@ deploy-operator: generate update-version-tags docker-build docker-push helm-load
 .PHONY: undeploy-operator
 undeploy-operator:  ## Cleanup the deployed operator extension.
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
-		kubectl delete --ignore-not-found=true -f -
+		kubectl delete --ignore-not-found=true --wait=false -f -
