@@ -19,10 +19,12 @@ extension:
     format: json
   # Controller manager settings
   manager:
-    # Number of Queries Per Second for client connections
-    qps: 100.0
+    # Number of Queries Per Second for client connections. Set to -1.0 in order
+    # to disable client-side rate limiting and rely on API priority and
+    # fairness.
+    qps: -1.0
     # Extra queries to accumulate when a client is exceeding its rate.
-    burst: 130
+    burst: 0
   # Metrics settings
   metrics:
     # Set to false in order to disable scraping from Prometheus.
