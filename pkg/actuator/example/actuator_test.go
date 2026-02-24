@@ -79,7 +79,7 @@ var _ = Describe("Actuator", Ordered, func() {
 				Namespace: projectNamespace.Name,
 			},
 			Spec: corev1beta1.ShootSpec{
-				SeedName: ptr.To("local"),
+				SeedName: new("local"),
 				Provider: corev1beta1.Provider{
 					Type: "local",
 				},

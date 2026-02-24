@@ -53,7 +53,7 @@ jobs:
           _fixes=$( make check-gofix )
           if [[ -n "${_fixes}" ]]; then
             echo "${_fixes}"
-            echo 'Suggested fixes detected, please run "make gofix"'
+            echo -e '\nSuggested fixes detected, please run "make gofix"'
             exit 1
           fi
       - name: Run linter

@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/ptr"
 
 	exampleactuator "gardener-extension-example/pkg/actuator/example"
 	"gardener-extension-example/pkg/admission/validator"
@@ -60,7 +59,7 @@ var _ = Describe("Shoot Validator", Ordered, func() {
 				Namespace: projectNamespace.Name,
 			},
 			Spec: core.ShootSpec{
-				SeedName: ptr.To("local"),
+				SeedName: new("local"),
 				Provider: core.Provider{
 					Type: "local",
 				},
