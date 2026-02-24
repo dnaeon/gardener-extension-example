@@ -1,6 +1,6 @@
 module gardener-extension-example/internal/tools
 
-go 1.25.6
+go 1.26.0
 
 tool (
 	github.com/elastic/crd-ref-docs
