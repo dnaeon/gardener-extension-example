@@ -31,8 +31,7 @@ The project repo uses the following code structure.
 
 # Usage
 
-You can enable the extension for a [Gardener Shoot
-cluster](https://gardener.cloud/docs/glossary/_index#gardener-glossary) by
+You can enable the extension for a [Gardener Shoot cluster](https://gardener.cloud/docs/glossary#gardener-glossary) by
 updating the `.spec.extensions` of your shoot manifest.
 
 ``` yaml
