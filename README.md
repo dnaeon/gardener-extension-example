@@ -77,124 +77,6 @@ you setup a [development Gardener environment](https://gardener.cloud/docs/garde
 Please refer to the next sections for more information about deploying and
 testing the extension in a Gardener development environment.
 
-## Development Environment without Gardener Operator
-
-The following documents describe how to create a Gardener development
-environment locally. Please make sure to read them in order to familiarize
-yourself with the setup, and also to install any prerequisites.
-
-- [Gardener: Local setup requirements](https://gardener.cloud/docs/gardener/local_setup/)
-- [Gardener: Getting Started Locally](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/)
-
-The steps from this section describe how to deploy and develop the extension
-against a local development environment, without the
-[Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/).
-
-In summary, these are the steps you need to follow in order to start a local
-development Gardener environment, however, please make sure that you read the
-documents above for additional details.
-
-``` shell
-make kind-up gardener-up
-```
-
-Before you continue with the next steps, make sure that you configure your
-`KUBECONFIG` to point to the kubeconfig file created by Gardener for you.
-
-This file will be located in the
-`/path/to/gardener/example/gardener-local/kind/local/kubeconfig` path after
-creating the dev environment.
-
-``` shell
-export KUBECONFIG=/path/to/gardener/example/gardener-local/kind/local/kubeconfig
-```
-
-You can use the following command in order to load the OCI image to the nodes of
-your local Gardener cluster, which is running in
-[kind](https://kind.sigs.k8s.io/).
-
-``` shell
-make kind-load-image
-```
-
-The Helm charts, which are used by the
-[gardenlet](https://gardener.cloud/docs/gardener/concepts/gardenlet/) for
-deploying the extension can be pushed to the local OCI registry using the
-following command.
-
-``` shell
-make helm-load-chart
-```
-
-In the [examples/dev-setup](./examples/dev-setup) directory you can find
-[kustomize](https://kustomize.io/]) resources, which can be used to create the
-`ControllerDeployment` and `ControllerRegistration` resources.
-
-For more information about `ControllerDeployment` and `ControllerRegistration`
-resources, please make sure to check the
-[Registering Extension Controllers](https://gardener.cloud/docs/gardener/extensions/registration/)
-documentation.
-
-The `deploy` target takes care of deploying your extension in a local Gardener
-environment. It does the following.
-
-1. Builds a Docker image of the extension
-2. Loads the image into the `kind` cluster nodes
-3. Packages the Helm charts and pushes them to the local registry
-4. Deploys the `ControllerDeployment` and `ControllerRegistration` resources
-
-``` shell
-make deploy
-```
-
-Verify that we have successfully created the `ControllerDeployment` and
-`ControllerRegistration` resources.
-
-``` shell
-$ kubectl get controllerregistrations,controllerdeployments gardener-extension-example
-NAME                                                                    RESOURCES           AGE
-controllerregistration.core.gardener.cloud/gardener-extension-example   Extension/example   40s
-
-NAME                                                                  AGE
-controllerdeployment.core.gardener.cloud/gardener-extension-example   40s
-```
-
-Finally, we can create an example shoot with our extension enabled. The
-[examples/shoot.yaml](./examples/shoot.yaml) file provides a ready-to-use shoot
-manifest with the extension enabled and configured.
-
-``` shell
-kubectl apply -f examples/shoot.yaml
-```
-
-Once we create the shoot cluster, `gardenlet` will start deploying our
-`gardener-extension-example`, since it is required by our shoot.
-
-Verify that the extension has been successfully installed by checking the
-corresponding `ControllerInstallation` resource.
-
-``` shell
-$ kubectl get controllerinstallations.core.gardener.cloud
-NAME                               REGISTRATION                 SEED    VALID   INSTALLED   HEALTHY   PROGRESSING   AGE
-gardener-extension-example-tktwt   gardener-extension-example   local   True    True        True      False         103s
-```
-
-After your shoot cluster has been successfully created and reconciled, verify
-that the extension is healthy.
-
-``` shell
-$ kubectl --namespace shoot--local--local get extensions
-NAME      TYPE      STATUS      AGE
-example   example   Succeeded   85m
-```
-
-In order to trigger reconciliation of the extension you can annotate the
-extension resource.
-
-``` shell
-kubectl --namespace shoot--local--local annotate extensions example gardener.cloud/operation=reconcile
-```
-
 ## Development Environment with Gardener Operator
 
 The extension can also be deployed via the
@@ -204,14 +86,14 @@ In order to start a local development environment with the Gardener Operator,
 please refer to the following documentations.
 
 - [Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/)
-- [Gardener: Local setup with gardener-operator](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/#alternative-way-to-set-up-garden-and-seed-leveraging-gardener-operator)
+- [Gardener: Deploying Gardener Locally](https://gardener.cloud/docs/gardener/deployment/getting_started_locally/)
 
 In summary, these are the steps you need to follow in order to start a local
 development environment with the [Gardener Operator](https://gardener.cloud/docs/gardener/concepts/operator/),
 however, please make sure that you read the documents above for additional details.
 
 ``` shell
-make kind-multi-zone-up operator-up operator-seed-up
+make kind-up gardener-up
 ```
 
 Before you continue with the next steps, make sure that you configure your
@@ -240,10 +122,10 @@ export KUBECONFIG=$KUBECONFIG_RUNTIME
 In order to deploy the extension, execute the following command.
 
 ``` shell
-make deploy-operator
+make deploy
 ```
 
-The `deploy-operator` target takes care of the following.
+The `deploy` target takes care of the following.
 
 1. Builds a Docker image of the extension
 2. Loads the image into the `kind` cluster nodes
@@ -349,6 +231,7 @@ hack/bootstrap.sh generate /path/to/new/project
 ![bootstrap demo](./images/bootstrap-demo.gif)
 
 <!-- BOOTSTRAP_DELETE_END -->
+
 # Documentation
 
 Make sure to check the following documents for more information about Gardener

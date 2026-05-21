@@ -38,8 +38,6 @@ IMAGE ?= europe-docker.pkg.dev/gardener-project/public/gardener/extensions/$(EXT
 LOCAL_REGISTRY ?= registry.local.gardener.cloud:5001
 # Name of the kind cluster for local development
 GARDENER_DEV_CLUSTER ?= gardener-local
-# Name of the kind cluster for local development (with gardener-operator)
-GARDENER_DEV_OPERATOR_CLUSTER ?= gardener-operator-local
 # Name of the kind cluster for local Gardener dev environment
 KIND_CLUSTER ?= $(GARDENER_DEV_CLUSTER)
 
@@ -295,30 +293,17 @@ update-version-tags:  ## Update version tags in helm charts and example resource
 	@env oci_charts=$(LOCAL_REGISTRY)/helm-charts/$(EXTENSION_NAME)-admission-virtual:$(VERSION) \
 		$(GO_TOOL) yq -i '.spec.deployment.admission.virtualCluster.helm.ociRepository.ref = env(oci_charts)' $(SRC_ROOT)/examples/operator-extension/patches/extension.yaml
 
-deploy deploy-operator: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
+deploy: export IMAGE=$(LOCAL_REGISTRY)/extensions/$(EXTENSION_NAME)
 
 .PHONY: deploy
-deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster.
-	@env \
-		WITH_GARDENER_OPERATOR=false \
-		EXTENSION_IMAGE=$(IMAGE):$(VERSION) \
-		EXTENSION_RESOURCE_NAME=$(EXTENSION_RESOURCE_NAME) \
-		$(HACK_DIR)/deploy-dev-setup.sh
-
-.PHONY: undeploy
-undeploy:  ## Cleanup the deployed extension.
-	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/dev-setup | \
-		kubectl delete --ignore-not-found=true --wait=false -f -
-
-.PHONY: deploy-operator
-deploy-operator: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster with Gardener Operator.
+deploy: generate update-version-tags docker-build docker-push helm-load-chart  ## Deploy to local dev cluster with Gardener Operator.
 	@env \
 		WITH_GARDENER_OPERATOR=true \
 		EXTENSION_IMAGE=$(IMAGE):$(VERSION) \
 		EXTENSION_RESOURCE_NAME=$(EXTENSION_RESOURCE_NAME) \
 		$(HACK_DIR)/deploy-dev-setup.sh
 
-.PHONY: undeploy-operator
-undeploy-operator:  ## Cleanup the deployed operator extension.
+.PHONY: undeploy
+undeploy:  ## Cleanup the deployed operator extension.
 	@$(GO_TOOL) kustomize build $(SRC_ROOT)/examples/operator-extension | \
 		kubectl delete --ignore-not-found=true --wait=false -f -

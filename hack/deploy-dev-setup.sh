@@ -17,7 +17,6 @@ function _validate_env_vars() {
   local _want_vars=(
     EXTENSION_IMAGE
     KUBECONFIG
-    WITH_GARDENER_OPERATOR
     EXTENSION_RESOURCE_NAME
   )
 
@@ -49,28 +48,13 @@ function _main() {
 
   export IMAGE_REPO="${_image}" IMAGE_TAG="${_tag}"
 
-  case "${WITH_GARDENER_OPERATOR}" in
-    0|f|false)
-      "${_KUSTOMIZE}" build "${_PROJECT_DIR}/examples/dev-setup" | \
-        "${_YQ}" \
-          'select(.kind == "ControllerDeployment" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).helm.values.image.repository |= strenv(IMAGE_REPO) |
-           select(.kind == "ControllerDeployment" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).helm.values.image.tag |= strenv(IMAGE_TAG)' | \
-             kubectl apply --server-side --force-conflicts=true -f -
-      ;;
-    1|t|true)
-      "${_KUSTOMIZE}" build "${_PROJECT_DIR}/examples/operator-extension" | \
-        "${_YQ}" \
-          'select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.extension.values.image.repository |= strenv(IMAGE_REPO) |
-           select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.extension.values.image.tag |= strenv(IMAGE_TAG) |
-           select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.admission.values.image.repository |= strenv(IMAGE_REPO) |
-           select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.admission.values.image.tag |= strenv(IMAGE_TAG)' | \
-             kubectl apply --server-side --force-conflicts=true -f -
-      ;;
-    *)
-      echo "unsupported value for env var WITH_GARDENER_OPERATOR=${WITH_GARDENER_OPERATOR}"
-      exit 1
-      ;;
-  esac
+  "${_KUSTOMIZE}" build "${_PROJECT_DIR}/examples/operator-extension" | \
+    "${_YQ}" \
+      'select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.extension.values.image.repository |= strenv(IMAGE_REPO) |
+       select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.extension.values.image.tag |= strenv(IMAGE_TAG) |
+       select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.admission.values.image.repository |= strenv(IMAGE_REPO) |
+       select(.kind == "Extension" and .metadata.name == env(EXTENSION_RESOURCE_NAME)).spec.deployment.admission.values.image.tag |= strenv(IMAGE_TAG)' | \
+         kubectl apply --server-side --force-conflicts=true -f -
 }
 
 _main "$@"
