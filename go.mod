@@ -10,11 +10,11 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/prometheus/client_golang v1.23.3-0.20260602051030-3537b20ac86b
 	github.com/urfave/cli/v3 v3.10.1
-	k8s.io/api v0.36.1
-	k8s.io/apiextensions-apiserver v0.36.1
-	k8s.io/apimachinery v0.36.1
-	k8s.io/client-go v0.36.1
-	k8s.io/component-base v0.36.1
+	k8s.io/api v0.36.2
+	k8s.io/apiextensions-apiserver v0.36.2
+	k8s.io/apimachinery v0.36.2
+	k8s.io/client-go v0.36.2
+	k8s.io/component-base v0.36.2
 	k8s.io/utils v0.0.0-20260507154919-ff6756f316d2
 	sigs.k8s.io/controller-runtime v0.24.1
 )
@@ -203,7 +203,7 @@ require (
 	k8s.io/kubelet v0.35.5 // indirect
 	k8s.io/metrics v0.35.5 // indirect
 	k8s.io/pod-security-admission v0.35.5 // indirect
-	k8s.io/streaming v0.36.1 // indirect
+	k8s.io/streaming v0.36.2 // indirect
 	sigs.k8s.io/gateway-api v1.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
