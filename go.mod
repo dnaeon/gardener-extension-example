@@ -4,9 +4,9 @@ go 1.26.0
 
 require (
 	github.com/gardener/gardener v1.144.0
-	github.com/gardener/gardener/pkg/apis v1.144.0
+	github.com/gardener/gardener/pkg/apis v1.145.0
 	github.com/go-logr/logr v1.4.3
-	github.com/onsi/ginkgo/v2 v2.29.0
+	github.com/onsi/ginkgo/v2 v2.31.0
 	github.com/onsi/gomega v1.42.1
 	github.com/prometheus/client_golang v1.23.3-0.20260630072210-b60fbc2882f7
 	github.com/urfave/cli/v3 v3.10.1
